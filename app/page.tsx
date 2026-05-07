@@ -109,8 +109,11 @@ export default function Home() {
     const s = INTRO_STEPS[introStep]
     return (
       <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#0a0a0a", color:"#fff", fontFamily:"sans-serif", textAlign:"center", padding:"2rem" }}>
-        <div key={introStep} style={{ animation:"fadeIn 0.6s ease" }}>
-          <div style={{ fontSize:72, marginBottom:16 }}>{s.emoji}</div>
+        <div key={introStep} style={{ animation:"fadeIn 0.6s ease", display:"flex", flexDirection:"column", alignItems:"center" }}>
+          {introStep === 0
+            ? <Image src="/intro.png" alt="CashFlow Wars" width={120} height={120} style={{ marginBottom:16 }} />
+            : <div style={{ fontSize:72, marginBottom:16 }}>{s.emoji}</div>
+          }
           <h1 style={{ fontSize:32, fontWeight:700, margin:"0 0 12px", letterSpacing:2 }}>{s.title}</h1>
           <p style={{ fontSize:18, color:"#aaa", margin:0 }}>{s.sub}</p>
         </div>
@@ -148,6 +151,8 @@ export default function Home() {
   )
 
   // EQUIPO
+  const teamImg: Record<number,string> = { 1:"/e1.png", 2:"/e2.png", 3:"/e4.png", 4:"/e3.png" }
+
   if (step === "team") return (
     <div style={pageStyle}>
       <h2 style={titleStyle}>Elige tu equipo</h2>
@@ -157,8 +162,8 @@ export default function Home() {
           const count = players.filter(p=>p.team===t.id).length
           return (
             <button key={t.id} onClick={()=>joinTeam(t.id)}
-              style={{ padding:"1rem", border:`2px solid ${t.color}`, borderRadius:12, background:t.light, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12, boxShadow:`0 2px 8px ${t.color}22` }}>
-              <span style={{ fontSize:36 }}>{t.emoji}</span>
+              style={{ padding:"0.875rem", border:`2px solid ${t.color}`, borderRadius:12, background:t.light, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12, boxShadow:`0 2px 8px ${t.color}22` }}>
+              <Image src={teamImg[t.id]} alt={t.name} width={56} height={56} style={{ objectFit:"contain" }} />
               <div>
                 <div style={{ fontWeight:700, color:t.color, fontSize:16 }}>{t.name}</div>
                 <div style={{ fontSize:13, color:"#666" }}>{count} integrante(s)</div>
@@ -176,7 +181,7 @@ export default function Home() {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     return (
       <div style={pageStyle}>
-        <div style={{ fontSize:56, marginBottom:4 }}>{myTeam?.emoji}</div>
+        {myTeam && <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={90} height={90} style={{ objectFit:"contain", marginBottom:4 }} />}
         <h2 style={{ ...titleStyle, color:myTeam?.color }}>{myTeam?.name}</h2>
         <p style={subStyle}>Bienvenido, <strong>{name}</strong></p>
         <div style={{ background:"#f5f5f3", borderRadius:12, padding:"1rem", width:"100%", marginTop:8 }}>
@@ -212,7 +217,7 @@ export default function Home() {
       const isCorrect = myAnswer === q.mejor
       return (
         <div style={pageStyle}>
-          <div style={{ fontSize:48, marginBottom:4 }}>{isCorrect ? "✅" : "📚"}</div>
+          <Image src={isCorrect?"/ok.png":"/fail.png"} alt={isCorrect?"correcto":"incorrecto"} width={90} height={90} style={{ objectFit:"contain", marginBottom:4 }} />
           <h3 style={{ margin:"0 0 12px", fontSize:18, fontWeight:700 }}>{isCorrect ? "¡Decisión correcta!" : "Aquí la clave:"}</h3>
           {myAns && (
             <div style={{ background: isCorrect?"#EAF3DE":"#FCEBEB", borderRadius:12, padding:"0.875rem", width:"100%", marginBottom:8, border:`1px solid ${isCorrect?"#B2DFCA":"#F5C6C6"}` }}>
@@ -256,9 +261,9 @@ export default function Home() {
         </div>
 
         {/* Capitán badge */}
-        <div style={{ background: isCaptain?"#FAEEDA":"#f5f5f3", borderRadius:10, padding:"8px 12px", width:"100%", marginBottom:10, textAlign:"center", border:`1px solid ${isCaptain?"#E8C97A":"#eee"}` }}>
+        <div style={{ background: isCaptain?"#FAEEDA":"#f5f5f3", borderRadius:10, padding:"8px 12px", width:"100%", marginBottom:10, textAlign:"center", border:`1px solid ${isCaptain?"#E8C97A":"#eee"}`, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
           {isCaptain
-            ? <span style={{ fontWeight:700, color:"#BA7517", fontSize:14 }}>⭐ Esta ronda respondes TÚ</span>
+            ? <><Image src="/cap.png" alt="capitán" width={32} height={32} style={{ objectFit:"contain" }} /><span style={{ fontWeight:700, color:"#BA7517", fontSize:14 }}>Esta ronda respondes TÚ</span></>
             : <span style={{ fontSize:13, color:"#666" }}>Responde: <strong style={{ color: myTeam?.color }}>{captain}</strong></span>
           }
         </div>
@@ -312,14 +317,14 @@ export default function Home() {
     const myTeamPlayers = players.filter(p=>p.team===player?.team)
     return (
       <div style={pageStyle}>
-        <div style={{ fontSize:56 }}>🏆</div>
+        <Image src="/win.png" alt="resultados" width={110} height={110} style={{ objectFit:"contain", marginBottom:4 }} />
         <h2 style={{ ...titleStyle, marginBottom:4 }}>¡Resultados finales!</h2>
         <p style={subStyle}>CashFlow Wars · UABC Mercadotecnia</p>
 
         {myTeam && (
           <div style={{ background:myTeam.light, border:`2px solid ${myTeam.color}`, borderRadius:14, padding:"1rem", width:"100%", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-              <span style={{ fontSize:28 }}>{myTeam.emoji}</span>
+              <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={40} height={40} style={{ objectFit:"contain" }} />
               <span style={{ fontWeight:700, fontSize:16, color:myTeam.color }}>{myTeam.name}</span>
             </div>
             <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:600, color:"#555" }}>Integrantes del equipo:</p>

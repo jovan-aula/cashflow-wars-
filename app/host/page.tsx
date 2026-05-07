@@ -6,6 +6,8 @@ import { QUESTIONS } from "@/lib/questions"
 import QRCode from "react-qr-code"
 import Image from "next/image"
 
+const teamImg: Record<number,string> = { 1:"/e1.png", 2:"/e2.png", 3:"/e4.png", 4:"/e3.png" }
+
 type Session = { id: string; code: string; current_round: number; state: string }
 type Player = { id: string; name: string; team: number }
 
@@ -158,7 +160,7 @@ export default function HostPage() {
             return (
               <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:14 }}>{["🥇","🥈","🥉","4️⃣"][i]}</span>
-                <span style={{ fontSize:18 }}>{t.emoji}</span>
+                <Image src={teamImg[t.id]} alt={t.name} width={28} height={28} style={{ objectFit:"contain" }} />
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
                     <span style={{ fontSize:13, fontWeight:600, color:t.color }}>{t.name}</span>
@@ -181,7 +183,7 @@ export default function HostPage() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
           {TEAMS.map(t => (
             <div key={t.id} style={{ background:t.light, borderRadius:8, padding:"0.75rem" }}>
-              <div style={{ fontWeight:700, color:t.color, fontSize:13, marginBottom:4 }}>{t.emoji} {t.name}</div>
+              <div style={{ fontWeight:700, color:t.color, fontSize:13, marginBottom:4, display:"flex", alignItems:"center", gap:4 }}><Image src={teamImg[t.id]} alt={t.name} width={20} height={20} style={{ objectFit:"contain" }} /> {t.name}</div>
               {players.filter(p=>p.team===t.id).map(p=>(
                 <div key={p.id} style={{ fontSize:12, color:"#555", padding:"2px 0" }}>👤 {p.name}</div>
               ))}
