@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { TEAMS, getCaptain, getCompanySize, playSound } from "@/lib/game"
+import { TEAMS, getCaptain, getCompanySize, playSound, startBgm, pauseBgm, stopBgm } from "@/lib/game"
 import { QUESTIONS } from "@/lib/questions"
 import Image from "next/image"
 
@@ -75,9 +75,29 @@ export default function Home() {
       .on("postgres_changes", { event:"*", schema:"public", table:"sessions", filter:`id=eq.${session.id}` },
         (payload) => {
           const s = payload.new as Session
-          setSession(s)
+          setSession(prev => {
+            // Reacting to state transitions
+            if (prev?.state !== s.state) {
+              if (s.state === "playing") {
+                // New round starting
+                startBgm()
+                setTimeout(() => playSound("roundstart"), 80)
+              } else if (s.state === "feedback") {
+                pauseBgm()
+                setTimeout(() => playSound("reveal"), 100)
+              } else if (s.state === "results") {
+                stopBgm()
+                setTimeout(() => { playSound("drumroll"); setTimeout(() => playSound("win"), 900) }, 200)
+                setStep("results")
+              }
+            } else if (s.state === "playing" && prev?.current_round !== s.current_round) {
+              // Same "playing" state but new round
+              startBgm()
+              setTimeout(() => playSound("roundstart"), 80)
+            }
+            return s
+          })
           if (s.state === "playing") setTimer(30)
-          if (s.state === "results") setStep("results")
         })
       .on("postgres_changes", { event:"*", schema:"public", table:"players", filter:`session_id=eq.${session.id}` },
         async () => {
@@ -117,7 +137,7 @@ export default function Home() {
 
   async function joinTeam(teamId: number) {
     const { data } = await supabase.from("players").insert({ session_id: session!.id, name, team: teamId }).select().single()
-    if (data) { setPlayer(data); setStep("lobby"); playSound("join") }
+    if (data) { setPlayer(data); setStep("lobby"); playSound("whoosh"); setTimeout(() => playSound("join"), 180) }
   }
 
   async function submitAnswer(optIdx: number) {
