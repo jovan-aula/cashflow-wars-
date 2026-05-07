@@ -420,18 +420,19 @@ export default function Home() {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     const myTeamPlayers = players.filter(p=>p.team===player?.team)
 
-    // Calificación del equipo: decisiones correctas / 15
-    let correct = 0
+    // Calificación basada en el puntaje del simulador (igual que el host)
+    // Empieza en 50, sube/baja según efecto de cada decisión del capitán
+    let simScore = 50
     for (let r = 0; r < QUESTIONS.length; r++) {
       const captainName = getCaptain(myTeamPlayers.map(p=>p.name), r)
       const captainPlayer = myTeamPlayers.find(p=>p.name===captainName)
-      if (!captainPlayer) continue
+      if (!captainPlayer) { simScore = Math.max(0, simScore - 5); continue } // penalización por no contestar
       const ans = answers[`${captainPlayer.id}:${r}`]
-      if (ans === QUESTIONS[r].mejor) correct++
+      if (ans === undefined) { simScore = Math.max(0, simScore - 5); continue }
+      simScore = Math.max(0, Math.min(100, simScore + QUESTIONS[r].opciones[ans].efecto))
     }
-    const totalAnswered = QUESTIONS.length
-    const calificacion = parseFloat(((correct / totalAnswered) * 10).toFixed(1))
-    const pct = Math.round((correct / totalAnswered) * 100)
+    const calificacion = parseFloat((simScore / 10).toFixed(1))
+    const pct = simScore
     const calColor = calificacion >= 8 ? "#4DFFA8" : calificacion >= 6 ? "#FFD700" : "#FF6B6B"
     const calLabel = calificacion >= 9 ? "¡Excelente!" : calificacion >= 8 ? "¡Muy bien!" : calificacion >= 6 ? "Bien" : calificacion >= 5 ? "Suficiente" : "A mejorar"
 
@@ -453,7 +454,7 @@ export default function Home() {
             <div style={{ height:10, borderRadius:8, background:calColor, width:`${pct}%`, transition:"width 1s ease", boxShadow:`0 0 10px ${calColor}88` }}/>
           </div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", marginTop:6 }}>
-            {correct} de {totalAnswered} decisiones correctas
+            Salud financiera del negocio: {simScore}/100
           </div>
         </div>
 
