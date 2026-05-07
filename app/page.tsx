@@ -8,6 +8,8 @@ import Image from "next/image"
 type Session = { id: string; code: string; current_round: number; state: string }
 type Player = { id: string; name: string; team: number }
 
+const teamImg: Record<number, string> = { 1:"/e1.png", 2:"/e2.png", 3:"/e4.png", 4:"/e3.png" }
+
 const levelImg = (score: number) => {
   if (score >= 80) return "/nivel5-corporativo.png"
   if (score >= 60) return "/nivel4-regional.png"
@@ -16,23 +18,37 @@ const levelImg = (score: number) => {
   return "/nivel1-kiosco.png"
 }
 
+const ANSWER_COLORS = ["#E21B3C", "#1368CE", "#D89E00", "#26890C"]
+const ANSWER_LETTERS = ["A", "B", "C", "D"]
+
+const ANIM = `
+  @keyframes fadeIn { from { opacity:0; transform:translateY(24px) scale(0.97) } to { opacity:1; transform:none } }
+  @keyframes slideUp { from { opacity:0; transform:translateY(36px) } to { opacity:1; transform:none } }
+  @keyframes popIn { from { opacity:0; transform:scale(0.55) } to { opacity:1; transform:scale(1) } }
+  @keyframes pulse { 0%,100% { transform:scale(1) } 50% { transform:scale(1.07) } }
+  @keyframes floatBounce { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-14px) } }
+  @keyframes shake { 0%,100% { transform:translateX(0) } 25% { transform:translateX(-4px) } 75% { transform:translateX(4px) } }
+  @keyframes spin { from { transform:rotate(0) } to { transform:rotate(360deg) } }
+  @keyframes glow { 0%,100% { box-shadow:0 0 10px currentColor } 50% { box-shadow:0 0 28px currentColor } }
+`
+
 function UabcLogo() {
   return (
-    <div style={{ position:"fixed", bottom:12, right:12, opacity:0.2, pointerEvents:"none" }}>
+    <div style={{ position:"fixed", bottom:12, right:12, opacity:0.18, pointerEvents:"none" }}>
       <Image src="/uabc.png" alt="UABC" width={28} height={28} />
     </div>
   )
 }
 
 export default function Home() {
-  const [code, setCode] = useState("")
-  const [name, setName] = useState("")
+  const [code, setCode]       = useState("")
+  const [name, setName]       = useState("")
   const [session, setSession] = useState<Session | null>(null)
-  const [player, setPlayer] = useState<Player | null>(null)
+  const [player, setPlayer]   = useState<Player | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [answers, setAnswers] = useState<Record<string, number>>({})
-  const [timer, setTimer] = useState(30)
-  const [step, setStep] = useState<"intro"|"code"|"name"|"team"|"lobby"|"game"|"feedback"|"results">("intro")
+  const [timer, setTimer]     = useState(30)
+  const [step, setStep]       = useState<"intro"|"code"|"name"|"team"|"lobby"|"game"|"feedback"|"results">("intro")
   const [introStep, setIntroStep] = useState(0)
 
   const INTRO_STEPS = [
@@ -48,7 +64,7 @@ export default function Home() {
       const t = setTimeout(() => setIntroStep(i => i + 1), 1800)
       return () => clearTimeout(t)
     } else {
-      const t = setTimeout(() => setStep("code"), 2000)
+      const t = setTimeout(() => setStep("code"), 2200)
       return () => clearTimeout(t)
     }
   }, [step, introStep])
@@ -56,19 +72,19 @@ export default function Home() {
   useEffect(() => {
     if (!session) return
     const ch = supabase.channel(`session:${session.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "sessions", filter: `id=eq.${session.id}` },
+      .on("postgres_changes", { event:"*", schema:"public", table:"sessions", filter:`id=eq.${session.id}` },
         (payload) => {
           const s = payload.new as Session
           setSession(s)
           if (s.state === "playing") setTimer(30)
           if (s.state === "results") setStep("results")
         })
-      .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `session_id=eq.${session.id}` },
+      .on("postgres_changes", { event:"*", schema:"public", table:"players", filter:`session_id=eq.${session.id}` },
         async () => {
           const { data } = await supabase.from("players").select("*").eq("session_id", session.id)
           if (data) setPlayers(data)
         })
-      .on("postgres_changes", { event: "*", schema: "public", table: "answers", filter: `session_id=eq.${session.id}` },
+      .on("postgres_changes", { event:"*", schema:"public", table:"answers", filter:`session_id=eq.${session.id}` },
         async () => {
           const { data } = await supabase.from("answers").select("*").eq("session_id", session.id)
           if (data) {
@@ -108,7 +124,7 @@ export default function Home() {
     if (!player || !session) return
     const key = `${player.id}:${session.current_round}`
     const prevAnswer = answers[key]
-    if (prevAnswer === optIdx) return  // same option clicked, ignore
+    if (prevAnswer === optIdx) return
     playSound("select")
     if (prevAnswer !== undefined) {
       await supabase.from("answers").update({ option_index: optIdx }).eq("player_id", player.id).eq("round", session.current_round).eq("session_id", session.id)
@@ -119,70 +135,100 @@ export default function Home() {
     playSound(optIdx === q.mejor ? "correct" : "wrong")
   }
 
-  // INTRO
+  // ── INTRO ──────────────────────────────────────────────────────────────────
   if (step === "intro") {
     const s = INTRO_STEPS[introStep]
     return (
-      <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#0a0a0a", color:"#fff", fontFamily:"sans-serif", textAlign:"center", padding:"2rem" }}>
-        <div key={introStep} style={{ animation:"fadeIn 0.6s ease", display:"flex", flexDirection:"column", alignItems:"center" }}>
+      <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"radial-gradient(ellipse at 50% 0%, #1a2a6c 0%, #0d0d1a 70%)", color:"#fff", fontFamily:"system-ui,sans-serif", textAlign:"center", padding:"2rem", overflow:"hidden" }}>
+        <style>{ANIM}</style>
+        {/* Ambient glow */}
+        <div style={{ position:"absolute", top:"-20%", left:"50%", transform:"translateX(-50%)", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(29,158,117,0.15) 0%, transparent 70%)", pointerEvents:"none" }} />
+        <div key={introStep} style={{ animation:"fadeIn 0.65s cubic-bezier(0.34,1.56,0.64,1)", display:"flex", flexDirection:"column", alignItems:"center", position:"relative" }}>
           {introStep === 0
-            ? <Image src="/intro.png" alt="CashFlow Wars" width={120} height={120} style={{ marginBottom:16 }} />
-            : <div style={{ fontSize:72, marginBottom:16 }}>{s.emoji}</div>
+            ? <Image src="/intro.png" alt="CashFlow Wars" width={150} height={150} style={{ marginBottom:24, filter:"drop-shadow(0 0 40px rgba(29,158,117,0.7))", animation:"pulse 2.5s ease-in-out infinite" }} />
+            : <div style={{ fontSize:110, marginBottom:20, lineHeight:1, filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.5))", animation:"floatBounce 0.7s ease" }}>{s.emoji}</div>
           }
-          <h1 style={{ fontSize:32, fontWeight:700, margin:"0 0 12px", letterSpacing:2 }}>{s.title}</h1>
-          <p style={{ fontSize:18, color:"#aaa", margin:0 }}>{s.sub}</p>
+          <h1 style={{ fontSize:38, fontWeight:900, margin:"0 0 14px", letterSpacing:3, textShadow:"0 2px 24px rgba(255,255,255,0.25)" }}>{s.title}</h1>
+          <p style={{ fontSize:20, color:"rgba(255,255,255,0.65)", margin:0, fontWeight:500 }}>{s.sub}</p>
         </div>
-        <div style={{ position:"fixed", bottom:16, right:16, opacity:0.15 }}>
-          <Image src="/uabc.png" alt="UABC" width={28} height={28} />
+        {/* Progress dots */}
+        <div style={{ position:"fixed", bottom:44, display:"flex", gap:10 }}>
+          {INTRO_STEPS.map((_,i) => (
+            <div key={i} style={{ width: i===introStep?24:8, height:8, borderRadius:4, background:i===introStep?"#1D9E75":"rgba(255,255,255,0.2)", transition:"all 0.35s ease" }} />
+          ))}
         </div>
-        <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}`}</style>
+        <div style={{ position:"fixed", bottom:14, right:14, opacity:0.18 }}>
+          <Image src="/uabc.png" alt="UABC" width={26} height={26} />
+        </div>
       </div>
     )
   }
 
-  // CÓDIGO
+  // ── CÓDIGO ─────────────────────────────────────────────────────────────────
   if (step === "code") return (
-    <div style={pageStyle}>
-      <div style={{ fontSize:48, marginBottom:8 }}>💰</div>
-      <h1 style={titleStyle}>CashFlow Wars</h1>
-      <p style={subStyle}>Ingresa el código de tu clase</p>
-      <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="ej: FLUJO123" maxLength={10}
-        style={{ ...inputStyle, textAlign:"center", fontSize:24, letterSpacing:4, fontWeight:700 }} />
-      <button onClick={joinSession} style={btnStyle("#1D9E75")}>Entrar →</button>
+    <div style={darkPageStyle("linear-gradient(160deg, #0d0d1a 0%, #1a2a6c 60%, #1D9E75 130%)")}>
+      <style>{ANIM}</style>
+      <div style={{ animation:"fadeIn 0.6s cubic-bezier(0.34,1.56,0.64,1)", display:"flex", flexDirection:"column", alignItems:"center", width:"100%", maxWidth:380 }}>
+        <div style={{ fontSize:100, lineHeight:1, marginBottom:16, filter:"drop-shadow(0 4px 20px rgba(0,0,0,0.4))" }}>💰</div>
+        <h1 style={{ fontSize:34, fontWeight:900, margin:"0 0 6px", color:"#fff", letterSpacing:2 }}>CashFlow Wars</h1>
+        <p style={{ fontSize:16, color:"rgba(255,255,255,0.6)", marginBottom:32 }}>Ingresa el código de tu clase</p>
+        <div style={{ background:"rgba(255,255,255,0.97)", borderRadius:24, padding:"2rem", width:"100%", boxShadow:"0 24px 64px rgba(0,0,0,0.4)" }}>
+          <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="FLUJO123" maxLength={10}
+            style={{ width:"100%", padding:"18px 14px", borderRadius:14, border:"2px solid #e5e5e5", fontSize:30, letterSpacing:6, fontWeight:900, textAlign:"center", fontFamily:"monospace", boxSizing:"border-box", outline:"none", color:"#185FA5", background:"#f4f8ff", transition:"border 0.2s" }}
+            onKeyDown={e=>e.key==="Enter"&&code.trim()&&joinSession()} />
+          <button onClick={joinSession} style={actionBtn("#1D9E75", "#14855a")}>
+            Entrar al juego →
+          </button>
+        </div>
+      </div>
       <UabcLogo />
     </div>
   )
 
-  // NOMBRE
+  // ── NOMBRE ─────────────────────────────────────────────────────────────────
   if (step === "name") return (
-    <div style={pageStyle}>
-      <h2 style={titleStyle}>¿Cómo te llamas?</h2>
-      <p style={subStyle}>Escribe tu nombre completo</p>
-      <input value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre completo" style={inputStyle}
-        onKeyDown={e=>e.key==="Enter"&&name.trim()&&setStep("team")} />
-      <button onClick={()=>name.trim()&&setStep("team")} style={btnStyle("#185FA5")}>Continuar →</button>
+    <div style={darkPageStyle("linear-gradient(160deg, #0d0d1a 0%, #1a2a6c 60%, #185FA5 130%)")}>
+      <style>{ANIM}</style>
+      <div style={{ animation:"fadeIn 0.6s cubic-bezier(0.34,1.56,0.64,1)", display:"flex", flexDirection:"column", alignItems:"center", width:"100%", maxWidth:380 }}>
+        <div style={{ fontSize:100, lineHeight:1, marginBottom:16 }}>✏️</div>
+        <h2 style={{ fontSize:30, fontWeight:900, margin:"0 0 6px", color:"#fff" }}>¿Cómo te llamas?</h2>
+        <p style={{ fontSize:16, color:"rgba(255,255,255,0.6)", marginBottom:32 }}>Escribe tu nombre completo</p>
+        <div style={{ background:"rgba(255,255,255,0.97)", borderRadius:24, padding:"2rem", width:"100%", boxShadow:"0 24px 64px rgba(0,0,0,0.4)" }}>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre completo"
+            style={{ width:"100%", padding:"16px 14px", borderRadius:14, border:"2px solid #e5e5e5", fontSize:18, fontFamily:"system-ui", boxSizing:"border-box", outline:"none", color:"#333", transition:"border 0.2s" }}
+            onKeyDown={e=>e.key==="Enter"&&name.trim()&&setStep("team")} />
+          <button onClick={()=>name.trim()&&setStep("team")} style={actionBtn("#185FA5", "#0e4080")}>
+            Continuar →
+          </button>
+        </div>
+      </div>
       <UabcLogo />
     </div>
   )
 
-  // EQUIPO
-  const teamImg: Record<number,string> = { 1:"/e1.png", 2:"/e2.png", 3:"/e4.png", 4:"/e3.png" }
-
+  // ── EQUIPO ─────────────────────────────────────────────────────────────────
   if (step === "team") return (
-    <div style={pageStyle}>
-      <h2 style={titleStyle}>Elige tu equipo</h2>
-      <p style={subStyle}>Hola, <strong>{name}</strong></p>
-      <div style={{ display:"grid", gap:12, width:"100%" }}>
-        {TEAMS.map(t => {
+    <div style={darkPageStyle("linear-gradient(160deg, #0d0d1a 0%, #1a1a3e 100%)")}>
+      <style>{ANIM}</style>
+      <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", fontWeight:700, letterSpacing:2, marginBottom:6, textAlign:"center" }}>BIENVENIDO/A</div>
+      <h2 style={{ fontSize:30, fontWeight:900, color:"#fff", margin:"0 0 4px", textAlign:"center" }}>{name} 👋</h2>
+      <p style={{ fontSize:15, color:"rgba(255,255,255,0.5)", marginBottom:28, textAlign:"center" }}>Elige tu equipo</p>
+      <div style={{ display:"grid", gap:12, width:"100%", maxWidth:400 }}>
+        {TEAMS.map((t, idx) => {
           const count = players.filter(p=>p.team===t.id).length
           return (
             <button key={t.id} onClick={()=>joinTeam(t.id)}
-              style={{ padding:"0.875rem", border:`2px solid ${t.color}`, borderRadius:12, background:t.light, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12, boxShadow:`0 2px 8px ${t.color}22` }}>
-              <Image src={teamImg[t.id]} alt={t.name} width={56} height={56} style={{ objectFit:"contain" }} />
-              <div>
-                <div style={{ fontWeight:700, color:t.color, fontSize:16 }}>{t.name}</div>
-                <div style={{ fontSize:13, color:"#666" }}>{count} integrante(s)</div>
+              style={{ padding:"1.1rem 1.25rem", border:"none", borderRadius:18, background:`linear-gradient(135deg, ${t.color} 0%, ${t.color}cc 100%)`, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:14, boxShadow:`0 6px 24px ${t.color}55`, animation:`slideUp 0.5s ${idx*0.08}s both cubic-bezier(0.34,1.56,0.64,1)` }}>
+              <div style={{ background:"rgba(255,255,255,0.2)", borderRadius:14, padding:4 }}>
+                <Image src={teamImg[t.id]} alt={t.name} width={72} height={72} style={{ objectFit:"contain", display:"block", filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.35))" }} />
               </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:900, color:"#fff", fontSize:20, textShadow:"0 1px 6px rgba(0,0,0,0.3)", letterSpacing:0.5 }}>{t.name}</div>
+                <div style={{ fontSize:14, color:"rgba(255,255,255,0.75)", marginTop:3 }}>
+                  {count === 0 ? "Sin integrantes aún" : `${count} integrante${count>1?"s":""} conectado${count>1?"s":""}`}
+                </div>
+              </div>
+              <div style={{ fontSize:24, color:"rgba(255,255,255,0.5)" }}>›</div>
             </button>
           )
         })}
@@ -191,30 +237,37 @@ export default function Home() {
     </div>
   )
 
-  // LOBBY
+  // ── LOBBY ─────────────────────────────────────────────────────────────────
   if (step === "lobby" && session?.state === "lobby") {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     return (
-      <div style={pageStyle}>
-        {myTeam && <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={90} height={90} style={{ objectFit:"contain", marginBottom:4 }} />}
-        <h2 style={{ ...titleStyle, color:myTeam?.color }}>{myTeam?.name}</h2>
-        <p style={subStyle}>Bienvenido, <strong>{name}</strong></p>
-        <div style={{ background:"#f5f5f3", borderRadius:12, padding:"1rem", width:"100%", marginTop:8 }}>
-          <p style={{ margin:"0 0 8px", fontWeight:600, fontSize:14 }}>Integrantes del equipo:</p>
-          {players.filter(p=>p.team===player?.team).map(p=>(
-            <div key={p.id} style={{ fontSize:14, padding:"4px 0", color:"#333" }}>👤 {p.name}</div>
+      <div style={darkPageStyle(`linear-gradient(160deg, #0d0d1a 0%, ${myTeam?.color}cc 100%)`)}>
+        <style>{ANIM}</style>
+        <div style={{ animation:"popIn 0.7s cubic-bezier(0.34,1.56,0.64,1)", display:"flex", flexDirection:"column", alignItems:"center", marginBottom:20 }}>
+          <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:24, padding:12, backdropFilter:"blur(8px)", marginBottom:16, animation:"pulse 3s ease-in-out infinite" }}>
+            <Image src={teamImg[myTeam?.id||1]} alt={myTeam?.name||""} width={120} height={120} style={{ objectFit:"contain", display:"block", filter:"drop-shadow(0 4px 20px rgba(0,0,0,0.4))" }} />
+          </div>
+          <h2 style={{ fontSize:34, fontWeight:900, color:"#fff", margin:"0 0 4px", textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>{myTeam?.name}</h2>
+          <p style={{ fontSize:16, color:"rgba(255,255,255,0.7)", margin:0 }}>¡Listo, <strong>{name}</strong>!</p>
+        </div>
+        <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:18, padding:"1.25rem", width:"100%", maxWidth:380, marginBottom:16 }}>
+          <p style={{ margin:"0 0 12px", fontWeight:700, fontSize:14, color:"rgba(255,255,255,0.8)" }}>👥 Tu equipo</p>
+          {players.filter(p=>p.team===player?.team).map((p, i) => (
+            <div key={p.id} style={{ fontSize:15, padding:"8px 0", color:"#fff", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:10, animation:`slideUp 0.4s ${i*0.07}s both` }}>
+              <span style={{ fontSize:22 }}>👤</span> {p.name}
+            </div>
           ))}
         </div>
-        <div style={{ marginTop:12, padding:"0.875rem", background:"#EAF3DE", borderRadius:10, width:"100%", textAlign:"center" }}>
-          <div style={{ fontSize:20, marginBottom:4 }}>⏳</div>
-          <div style={{ fontSize:13, color:"#3B6D11", fontWeight:500 }}>Esperando que el profe inicie el juego...</div>
+        <div style={{ background:"rgba(0,0,0,0.3)", backdropFilter:"blur(10px)", borderRadius:16, padding:"1.1rem 1.5rem", textAlign:"center", border:"1px solid rgba(255,255,255,0.15)" }}>
+          <div style={{ fontSize:44, marginBottom:8, animation:"floatBounce 2s ease-in-out infinite" }}>⏳</div>
+          <div style={{ fontSize:15, color:"rgba(255,255,255,0.85)", fontWeight:600 }}>Esperando que el profe inicie el juego...</div>
         </div>
         <UabcLogo />
       </div>
     )
   }
 
-  // JUEGO Y FEEDBACK
+  // ── JUEGO + FEEDBACK ──────────────────────────────────────────────────────
   if (session?.state === "playing" || session?.state === "feedback") {
     const round = session.current_round
     const q = QUESTIONS[round]
@@ -223,174 +276,198 @@ export default function Home() {
     const isCaptain = player?.name === captain
     const myAnswer = player ? answers[`${player.id}:${round}`] : undefined
     const myTeam = TEAMS.find(t=>t.id===player?.team)
-    const timerColor = timer <= 10 ? "#E24B4A" : timer <= 20 ? "#BA7517" : "#185FA5"
+    const timerPct = (timer / 30) * 100
+    const timerColor = timer <= 10 ? "#E21B3C" : timer <= 20 ? "#D89E00" : "#1D9E75"
 
-    // FEEDBACK
+    // FEEDBACK ──────────────────────────────────────────────────────────────
     if (session.state === "feedback") {
       const myAns = myAnswer !== undefined ? q.opciones[myAnswer] : null
       const best = q.opciones[q.mejor]
       const isCorrect = myAnswer === q.mejor
+      const bgGrad = isCorrect
+        ? "radial-gradient(ellipse at 50% 0%, #1a5c30 0%, #0a2010 100%)"
+        : "radial-gradient(ellipse at 50% 0%, #5c1a1a 0%, #200a0a 100%)"
       return (
-        <div style={pageStyle}>
-          <Image src={isCorrect?"/ok.png":"/fail.png"} alt={isCorrect?"correcto":"incorrecto"} width={90} height={90} style={{ objectFit:"contain", marginBottom:4 }} />
-          <h3 style={{ margin:"0 0 12px", fontSize:18, fontWeight:700 }}>{isCorrect ? "¡Decisión correcta!" : "Aquí la clave:"}</h3>
+        <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", fontFamily:"system-ui,sans-serif", background:bgGrad, padding:"1.5rem 1rem 3rem", paddingTop:"2.5rem" }}>
+          <style>{ANIM}</style>
+          <div style={{ animation:"popIn 0.7s cubic-bezier(0.34,1.56,0.64,1)", textAlign:"center", marginBottom:20 }}>
+            <Image src={isCorrect?"/ok.png":"/fail.png"} alt="" width={120} height={120} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 24px rgba(0,0,0,0.5))" }} />
+            <h3 style={{ color:"#fff", fontSize:28, fontWeight:900, margin:"14px 0 0", textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>
+              {isCorrect ? "¡Decisión correcta! 🎉" : "Aquí está la clave:"}
+            </h3>
+          </div>
           {myAns && (
-            <div style={{ background: isCorrect?"#EAF3DE":"#FCEBEB", borderRadius:12, padding:"0.875rem", width:"100%", marginBottom:8, border:`1px solid ${isCorrect?"#B2DFCA":"#F5C6C6"}` }}>
-              <p style={{ margin:"0 0 4px", fontWeight:700, fontSize:13, color: isCorrect?"#3B6D11":"#A32D2D" }}>Tu respuesta:</p>
-              <p style={{ margin:"0 0 6px", fontSize:13, color: isCorrect?"#3B6D11":"#A32D2D" }}>{myAns.texto}</p>
-              <p style={{ margin:0, fontSize:12, color:"#555", lineHeight:1.5 }}>{myAns.feedback}</p>
+            <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:10, border:`1px solid rgba(255,255,255,${isCorrect?0.25:0.15})`, animation:"slideUp 0.5s 0.15s both" }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:700, letterSpacing:1.5, marginBottom:6 }}>TU RESPUESTA</div>
+              <p style={{ margin:"0 0 6px", fontSize:14, color:"#fff", fontWeight:700 }}>{myAns.texto}</p>
+              <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6 }}>{myAns.feedback}</p>
             </div>
           )}
           {!isCorrect && (
-            <div style={{ background:"#EAF3DE", borderRadius:12, padding:"0.875rem", width:"100%", marginBottom:8, border:"1px solid #B2DFCA" }}>
-              <p style={{ margin:"0 0 4px", fontWeight:700, fontSize:13, color:"#3B6D11" }}>Mejor opción:</p>
-              <p style={{ margin:"0 0 6px", fontSize:13, color:"#3B6D11" }}>{best.texto}</p>
-              <p style={{ margin:0, fontSize:12, color:"#3B6D11", lineHeight:1.5 }}>{best.feedback}</p>
+            <div style={{ background:"rgba(29,158,117,0.2)", backdropFilter:"blur(12px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:10, border:"1px solid rgba(29,158,117,0.4)", animation:"slideUp 0.5s 0.3s both" }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:700, letterSpacing:1.5, marginBottom:6 }}>✅ MEJOR OPCIÓN</div>
+              <p style={{ margin:"0 0 6px", fontSize:14, color:"#fff", fontWeight:700 }}>{best.texto}</p>
+              <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6 }}>{best.feedback}</p>
             </div>
           )}
-          <div style={{ background:"#E6F1FB", borderRadius:12, padding:"0.875rem", width:"100%", border:"1px solid #C2D9F5" }}>
-            <p style={{ margin:0, fontWeight:700, fontSize:13, color:"#0C447C" }}>💡 Concepto clave:</p>
-            <p style={{ margin:"4px 0 0", fontSize:13, color:"#0C447C", lineHeight:1.5 }}>{q.concepto}</p>
+          <div style={{ background:"rgba(24,95,165,0.3)", backdropFilter:"blur(12px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, border:"1px solid rgba(100,160,255,0.3)", animation:"slideUp 0.5s 0.45s both" }}>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:700, letterSpacing:1.5, marginBottom:6 }}>💡 CONCEPTO CLAVE</div>
+            <p style={{ margin:0, fontSize:14, color:"#fff", lineHeight:1.6, fontWeight:500 }}>{q.concepto}</p>
           </div>
-          <p style={{ fontSize:12, color:"#aaa", marginTop:10 }}>Esperando siguiente ronda...</p>
+          <p style={{ fontSize:13, color:"rgba(255,255,255,0.35)", marginTop:20 }}>Esperando siguiente ronda...</p>
           <UabcLogo />
         </div>
       )
     }
 
-    // PREGUNTA
+    // PREGUNTA — KAHOOT STYLE ─────────────────────────────────────────────
     return (
-      <div style={pageStyle}>
-        {/* Header ronda */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%", marginBottom:6 }}>
-          <span style={{ fontSize:11, color:"#888", fontWeight:600 }}>RONDA {round+1}/15 · {q.mes}</span>
-          <span style={{ fontSize:20, fontWeight:700, color:timerColor, fontVariantNumeric:"tabular-nums" }}>{timer}s</span>
-        </div>
-        {/* Barra de progreso */}
-        <div style={{ background:"#f0f0ee", borderRadius:8, height:5, width:"100%", marginBottom:10 }}>
-          <div style={{ background:myTeam?.color||"#1D9E75", height:5, borderRadius:8, width:`${((round+1)/15)*100}%`, transition:"width 0.5s" }}/>
-        </div>
-        {/* Timer bar */}
-        <div style={{ background:"#f0f0ee", borderRadius:4, height:4, width:"100%", marginBottom:12 }}>
-          <div style={{ background:timerColor, height:4, borderRadius:4, width:`${(timer/30)*100}%`, transition:"width 1s linear, background 0.3s" }}/>
+      <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", fontFamily:"system-ui,sans-serif", background:"#12122a" }}>
+        <style>{ANIM}</style>
+
+        {/* ── Top bar ── */}
+        <div style={{ padding:"0.875rem 1rem 0.5rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          {/* Round progress */}
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ background:myTeam?.color||"#1D9E75", borderRadius:8, padding:"3px 10px", fontSize:12, fontWeight:800, color:"#fff" }}>
+              {round+1}/15
+            </div>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontWeight:600 }}>{q.mes}</span>
+          </div>
+          {/* Timer circle */}
+          <div style={{ background:timerColor, borderRadius:50, width:48, height:48, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 24px ${timerColor}88`, animation:timer<=10?"shake 0.4s infinite":"none", transition:"background 0.4s", flexShrink:0 }}>
+            <span style={{ fontSize:20, fontWeight:900, color:"#fff", fontVariantNumeric:"tabular-nums" }}>{timer}</span>
+          </div>
         </div>
 
-        {/* Capitán badge */}
-        <div style={{ background: isCaptain?"#FAEEDA":"#f5f5f3", borderRadius:10, padding:"8px 12px", width:"100%", marginBottom:10, textAlign:"center", border:`1px solid ${isCaptain?"#E8C97A":"#eee"}`, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+        {/* Timer bar */}
+        <div style={{ height:6, background:"rgba(255,255,255,0.08)", margin:"0 1rem 0.75rem", borderRadius:3 }}>
+          <div style={{ height:6, background:timerColor, width:`${timerPct}%`, borderRadius:3, transition:"width 1s linear, background 0.4s", boxShadow:`0 0 8px ${timerColor}88` }}/>
+        </div>
+
+        {/* Captain badge */}
+        <div style={{ margin:"0 1rem 0.75rem", padding:"10px 14px", borderRadius:12, background:isCaptain?"rgba(255,210,0,0.12)":"rgba(255,255,255,0.05)", border:`1.5px solid ${isCaptain?"rgba(255,210,0,0.45)":"rgba(255,255,255,0.1)"}`, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
           {isCaptain
-            ? <><Image src="/cap.png" alt="capitán" width={32} height={32} style={{ objectFit:"contain" }} /><span style={{ fontWeight:700, color:"#BA7517", fontSize:14 }}>Esta ronda respondes TÚ</span></>
-            : <span style={{ fontSize:13, color:"#666" }}>Responde: <strong style={{ color: myTeam?.color }}>{captain}</strong></span>
+            ? <><Image src="/cap.png" alt="cap" width={30} height={30} style={{ objectFit:"contain" }} /><span style={{ fontWeight:900, color:"#FFD700", fontSize:14, letterSpacing:0.5 }}>⚡ ¡RESPONDES TÚ ESTA RONDA!</span></>
+            : <><Image src={teamImg[myTeam?.id||1]} alt="" width={24} height={24} style={{ objectFit:"contain" }} /><span style={{ fontSize:13, color:"rgba(255,255,255,0.55)" }}>Responde: <strong style={{ color:myTeam?.color, fontSize:14 }}>{captain}</strong></span></>
           }
         </div>
 
-        {/* Situación */}
-        <div style={{ background:"#fff", border:"1px solid #eee", borderRadius:12, padding:"0.875rem", width:"100%", marginBottom:10, boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
-          <p style={{ margin:"0 0 4px", fontSize:11, color:"#aaa", fontWeight:700, letterSpacing:1 }}>SITUACIÓN</p>
-          <p style={{ margin:"0 0 8px", fontSize:13, lineHeight:1.6, color:"#333" }}>{q.situacion}</p>
-          <p style={{ margin:0, fontWeight:700, fontSize:14, color:"#111" }}>{q.pregunta}</p>
+        {/* Question card */}
+        <div style={{ margin:"0 1rem 1rem", background:"rgba(255,255,255,0.07)", borderRadius:18, padding:"1.1rem 1.25rem", flex:1, display:"flex", flexDirection:"column", justifyContent:"center", border:"1px solid rgba(255,255,255,0.1)", animation:"slideUp 0.5s ease" }}>
+          <p style={{ margin:"0 0 10px", fontSize:13, color:"rgba(255,255,255,0.5)", lineHeight:1.7 }}>{q.situacion}</p>
+          <p style={{ margin:0, fontWeight:800, fontSize:17, color:"#fff", lineHeight:1.45 }}>{q.pregunta}</p>
         </div>
 
-        {/* Opciones */}
-        <div style={{ display:"grid", gap:8, width:"100%" }}>
+        {/* 2×2 Answer grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9, padding:"0 1rem", marginBottom:8 }}>
           {q.opciones.map((op, i) => {
             const chosen = myAnswer === i
-            const disabled = !isCaptain || myAnswer !== undefined
+            const answered = myAnswer !== undefined
+            const canClick = isCaptain
+            const col = ANSWER_COLORS[i]
             return (
-              <button key={i} onClick={()=>!disabled&&submitAnswer(i)}
-                style={{ padding:"10px 14px", borderRadius:10,
-                  border:`1.5px solid ${chosen?"#185FA5":"#e5e5e5"}`,
-                  background: chosen?"#E6F1FB":"#fafafa",
-                  cursor:disabled?"default":"pointer",
-                  opacity: myAnswer!==undefined&&!chosen?0.45:1,
-                  fontSize:13, lineHeight:1.5, textAlign:"left",
-                  fontFamily:"sans-serif", width:"100%",
-                  transition:"all 0.15s",
-                  boxShadow: chosen?"0 0 0 3px rgba(24,95,165,0.15)":"none" }}>
-                <span style={{ fontWeight:700, color: chosen?"#185FA5":"#bbb", marginRight:8 }}>{String.fromCharCode(65+i)}.</span>
-                <span style={{ color: chosen?"#185FA5":"#333" }}>{op.texto}</span>
+              <button key={i} onClick={()=>canClick&&submitAnswer(i)}
+                style={{ padding:"0.875rem 0.75rem", borderRadius:16, border:`3px solid ${chosen?"#fff":"transparent"}`, background:col, cursor:canClick?"pointer":"default", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:7, minHeight:96, opacity:(!canClick&&!chosen)||(answered&&!chosen)?0.45:1, boxShadow:chosen?`0 0 0 3px ${col}99, 0 8px 28px rgba(0,0,0,0.5)`:"0 4px 14px rgba(0,0,0,0.35)", transition:"all 0.18s", transform:chosen?"scale(1.04)":"scale(1)", animation:`popIn 0.45s ${i*0.07}s both` }}>
+                <div style={{ width:30, height:30, borderRadius:8, background:"rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:"#fff" }}>
+                  {ANSWER_LETTERS[i]}
+                </div>
+                <span style={{ fontSize:12, color:"#fff", fontWeight:700, lineHeight:1.4, textAlign:"center" }}>{op.texto}</span>
               </button>
             )
           })}
         </div>
 
         {myAnswer !== undefined && (
-          <div style={{ marginTop:10, padding:"8px 12px", background:"#EAF3DE", borderRadius:8, width:"100%", textAlign:"center" }}>
-            <span style={{ fontSize:13, color:"#3B6D11", fontWeight:600 }}>✓ Respuesta registrada — puedes cambiarla antes de que el profe avance</span>
+          <div style={{ margin:"0 1rem 1rem", padding:"10px 14px", background:"rgba(29,158,117,0.2)", border:"1.5px solid rgba(29,158,117,0.5)", borderRadius:12, textAlign:"center", animation:"popIn 0.35s ease" }}>
+            <span style={{ fontSize:13, color:"#4DFFA8", fontWeight:700 }}>✓ Respuesta guardada — puedes cambiarla</span>
           </div>
         )}
         {!isCaptain && myAnswer === undefined && (
-          <p style={{ fontSize:12, color:"#aaa", marginTop:8, textAlign:"center" }}>Debate con tu equipo — solo <strong>{captain}</strong> puede responder</p>
+          <div style={{ margin:"0 1rem 1rem", textAlign:"center" }}>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.35)" }}>
+              Solo <strong style={{ color:myTeam?.color }}>{captain}</strong> puede responder esta ronda — debate con tu equipo
+            </span>
+          </div>
         )}
         <UabcLogo />
       </div>
     )
   }
 
-  // RESULTADOS
+  // ── RESULTADOS ───────────────────────────────────────────────────────────
   if (step === "results" || session?.state === "results") {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     const myTeamPlayers = players.filter(p=>p.team===player?.team)
     return (
-      <div style={pageStyle}>
-        <Image src="/win.png" alt="resultados" width={110} height={110} style={{ objectFit:"contain", marginBottom:4 }} />
-        <h2 style={{ ...titleStyle, marginBottom:4 }}>¡Resultados finales!</h2>
-        <p style={subStyle}>CashFlow Wars · UABC Mercadotecnia</p>
+      <div style={darkPageStyle(`linear-gradient(160deg, #0d0d1a 0%, ${myTeam?.color||"#1D9E75"}bb 100%)`)}>
+        <style>{ANIM}</style>
+        <div style={{ animation:"popIn 0.8s cubic-bezier(0.34,1.56,0.64,1)", marginBottom:10 }}>
+          <Image src="/win.png" alt="resultados" width={140} height={140} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 32px rgba(0,0,0,0.5))", animation:"pulse 2.5s ease-in-out infinite" }} />
+        </div>
+        <h2 style={{ fontSize:30, fontWeight:900, color:"#fff", margin:"0 0 4px", textAlign:"center", textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>¡Resultados finales!</h2>
+        <p style={{ fontSize:14, color:"rgba(255,255,255,0.55)", margin:"0 0 24px", textAlign:"center" }}>CashFlow Wars · UABC Mercadotecnia</p>
 
         {myTeam && (
-          <div style={{ background:myTeam.light, border:`2px solid ${myTeam.color}`, borderRadius:14, padding:"1rem", width:"100%", marginBottom:12 }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={44} height={44} style={{ objectFit:"contain" }} />
-                <span style={{ fontWeight:700, fontSize:16, color:myTeam.color }}>{myTeam.name}</span>
+          <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(16px)", border:"2px solid rgba(255,255,255,0.25)", borderRadius:20, padding:"1.25rem", width:"100%", maxWidth:400, marginBottom:14, animation:"slideUp 0.6s 0.2s both" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={58} height={58} style={{ objectFit:"contain", filter:"drop-shadow(0 2px 10px rgba(0,0,0,0.5))" }} />
+                <span style={{ fontWeight:900, fontSize:20, color:"#fff" }}>{myTeam.name}</span>
               </div>
-              <Image src={levelImg(50)} alt="nivel" width={56} height={56} style={{ objectFit:"contain", transition:"all 0.5s ease" }} />
+              <Image src={levelImg(50)} alt="nivel" width={60} height={60} style={{ objectFit:"contain" }} />
             </div>
-            <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:600, color:"#555" }}>Integrantes del equipo:</p>
-            {myTeamPlayers.map(p => (
-              <div key={p.id} style={{ fontSize:14, padding:"3px 0", color:"#333" }}>👤 {p.name}</div>
+            <p style={{ margin:"0 0 10px", fontSize:13, fontWeight:700, color:"rgba(255,255,255,0.65)" }}>Integrantes del equipo:</p>
+            {myTeamPlayers.map((p, i) => (
+              <div key={p.id} style={{ fontSize:15, padding:"7px 0", color:"#fff", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:10, animation:`slideUp 0.4s ${0.2+i*0.07}s both` }}>
+                <span style={{ fontSize:22 }}>👤</span> {p.name}
+              </div>
             ))}
           </div>
         )}
 
-        <div style={{ background:"#FFFBEA", border:"1.5px solid #E8C97A", borderRadius:12, padding:"1rem", width:"100%", marginBottom:10 }}>
-          <p style={{ margin:"0 0 6px", fontWeight:700, fontSize:14, color:"#7A5C00" }}>📸 Evidencia para Blackboard</p>
-          <p style={{ margin:0, fontSize:13, color:"#7A5C00", lineHeight:1.6 }}>
+        <div style={{ background:"rgba(255,240,100,0.12)", backdropFilter:"blur(8px)", border:"1.5px solid rgba(255,220,80,0.4)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:12, animation:"slideUp 0.6s 0.4s both" }}>
+          <p style={{ margin:"0 0 6px", fontWeight:900, fontSize:15, color:"#FFD700" }}>📸 Evidencia para Blackboard</p>
+          <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.85)", lineHeight:1.65 }}>
             Toma un <strong>screenshot de esta pantalla</strong> con los nombres de tu equipo visibles y súbelo a Blackboard como evidencia de participación.
           </p>
         </div>
 
-        <div style={{ background:"#EAF3DE", borderRadius:12, padding:"1rem", width:"100%" }}>
-          <p style={{ margin:"0 0 4px", fontWeight:700, fontSize:13, color:"#3B6D11" }}>💡 Para llevar:</p>
-          <p style={{ margin:0, fontSize:13, color:"#3B6D11", lineHeight:1.6 }}>
+        <div style={{ background:"rgba(29,158,117,0.18)", backdropFilter:"blur(8px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, border:"1px solid rgba(29,158,117,0.4)", animation:"slideUp 0.6s 0.55s both" }}>
+          <p style={{ margin:"0 0 5px", fontWeight:700, fontSize:13, color:"#4DFFA8" }}>💡 Para llevar:</p>
+          <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.8)", lineHeight:1.65 }}>
             El flujo de efectivo no es lo mismo que la utilidad. Una empresa puede tener ganancias en papel y quebrar por falta de liquidez.
           </p>
         </div>
 
-        <div style={{ marginTop:16, display:"flex", alignItems:"center", gap:8, opacity:0.5 }}>
+        <div style={{ marginTop:22, display:"flex", alignItems:"center", gap:8, opacity:0.3 }}>
           <Image src="/uabc.png" alt="UABC" width={20} height={20} />
-          <span style={{ fontSize:11, color:"#888" }}>UABC · Mercadotecnia</span>
+          <span style={{ fontSize:11, color:"#fff" }}>UABC · Mercadotecnia</span>
         </div>
       </div>
     )
   }
 
-  return <div style={pageStyle}><p style={subStyle}>Conectando...</p><UabcLogo /></div>
+  return (
+    <div style={darkPageStyle("#12122a")}>
+      <style>{ANIM}</style>
+      <div style={{ fontSize:48, animation:"pulse 1.5s ease-in-out infinite" }}>💰</div>
+      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:15, marginTop:12 }}>Conectando...</p>
+      <UabcLogo />
+    </div>
+  )
 }
 
-const pageStyle: React.CSSProperties = {
+// ── Helpers ────────────────────────────────────────────────────────────────
+const darkPageStyle = (bg: string): React.CSSProperties => ({
   minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center",
-  justifyContent:"flex-start", padding:"1.25rem 1rem 3rem", fontFamily:"sans-serif",
-  maxWidth:420, margin:"0 auto", paddingTop:"2rem"
-}
-const titleStyle: React.CSSProperties = { fontSize:24, fontWeight:700, margin:"8px 0 4px", textAlign:"center" }
-const subStyle: React.CSSProperties = { fontSize:14, color:"#666", margin:"0 0 16px", textAlign:"center" }
-const inputStyle: React.CSSProperties = {
-  width:"100%", padding:"12px", borderRadius:10, border:"1.5px solid #e5e5e5",
-  fontSize:16, marginBottom:12, boxSizing:"border-box", fontFamily:"sans-serif",
-  outline:"none"
-}
-const btnStyle = (bg: string): React.CSSProperties => ({
-  width:"100%", padding:"14px", background:bg, color:"#fff", border:"none",
-  borderRadius:10, fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"sans-serif",
-  boxShadow:`0 4px 12px ${bg}44`
+  justifyContent:"flex-start", padding:"1.25rem 1rem 3rem", fontFamily:"system-ui,sans-serif",
+  maxWidth:440, margin:"0 auto", paddingTop:"3rem", background:bg
+})
+
+const actionBtn = (from: string, to: string): React.CSSProperties => ({
+  marginTop:14, width:"100%", padding:"17px", background:`linear-gradient(135deg, ${from}, ${to})`,
+  color:"#fff", border:"none", borderRadius:14, fontSize:17, fontWeight:800,
+  cursor:"pointer", boxShadow:`0 6px 24px ${from}55`, letterSpacing:0.3,
+  fontFamily:"system-ui,sans-serif"
 })
