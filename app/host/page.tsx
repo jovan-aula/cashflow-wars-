@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { TEAMS, generateCode, getCompanySize, playSound } from "@/lib/game"
 import { QUESTIONS } from "@/lib/questions"
 import QRCode from "react-qr-code"
+import Image from "next/image"
 
 type Session = { id: string; code: string; current_round: number; state: string }
 type Player = { id: string; name: string; team: number }
@@ -15,8 +16,22 @@ export default function HostPage() {
   const [scores, setScores] = useState<Record<number, number>>({ 1:50, 2:50, 3:50, 4:50 })
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState("")
+  const [timer, setTimer] = useState(30)
 
   useEffect(() => { setUrl(window.location.origin) }, [])
+
+  // Timer del profe
+  useEffect(() => {
+    if (!session || session.state !== "playing") return
+    setTimer(30)
+  }, [session?.current_round, session?.state])
+
+  useEffect(() => {
+    if (!session || session.state !== "playing") return
+    if (timer <= 0) return
+    const t = setTimeout(() => setTimer(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [timer, session?.state])
 
   async function createSession() {
     setLoading(true)
@@ -47,11 +62,11 @@ export default function HostPage() {
   async function startGame() {
     await supabase.from("sessions").update({ state:"playing", current_round:0 }).eq("id", session!.id)
     setSession(s => s ? {...s, state:"playing", current_round:0} : s)
+    setTimer(30)
     playSound("start")
   }
 
   async function showFeedback() {
-    // Calcular scores de esta ronda
     const round = session!.current_round
     const q = QUESTIONS[round]
     const roundAnswers = answers.filter(a => a.round === round)
@@ -79,6 +94,7 @@ export default function HostPage() {
     } else {
       await supabase.from("sessions").update({ state:"playing", current_round:next }).eq("id", session!.id)
       setSession(s => s ? {...s, state:"playing", current_round:next} : s)
+      setTimer(30)
     }
   }
 
@@ -86,13 +102,15 @@ export default function HostPage() {
   const q = QUESTIONS[round]
   const roundAnswers = answers.filter(a => a.round === round)
   const sortedTeams = [...TEAMS].sort((a,b)=>(scores[b.id]||0)-(scores[a.id]||0))
+  const timerColor = timer <= 10 ? "#E24B4A" : timer <= 20 ? "#BA7517" : "#1D9E75"
 
   if (!session) return (
     <div style={hostPageStyle}>
-      <h1 style={{ fontSize:28, fontWeight:700, marginBottom:8 }}>💰 CashFlow Wars</h1>
-      <p style={{ color:"#666", marginBottom:24 }}>Panel del Profesor · UABC Mercadotecnia</p>
+      <Image src="/uabc.png" alt="UABC" width={48} height={48} style={{ marginBottom:12, opacity:0.7 }} />
+      <h1 style={{ fontSize:28, fontWeight:700, marginBottom:4 }}>💰 CashFlow Wars</h1>
+      <p style={{ color:"#888", marginBottom:28, fontSize:14 }}>Panel del Profesor · UABC Mercadotecnia</p>
       <button onClick={createSession} disabled={loading}
-        style={{ padding:"14px 32px", background:"#1D9E75", color:"#fff", border:"none", borderRadius:12, fontSize:18, fontWeight:700, cursor:"pointer" }}>
+        style={{ padding:"14px 40px", background:"#1D9E75", color:"#fff", border:"none", borderRadius:12, fontSize:18, fontWeight:700, cursor:"pointer", boxShadow:"0 4px 12px rgba(29,158,117,0.3)" }}>
         {loading ? "Creando..." : "🚀 Crear nueva sesión"}
       </button>
     </div>
@@ -102,15 +120,24 @@ export default function HostPage() {
     <div style={{ padding:"1.5rem", fontFamily:"sans-serif", maxWidth:1000, margin:"0 auto" }}>
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.5rem", flexWrap:"wrap", gap:12 }}>
-        <div>
-          <h1 style={{ margin:0, fontSize:22, fontWeight:700 }}>💰 CashFlow Wars</h1>
-          <p style={{ margin:0, color:"#888", fontSize:13 }}>
-            Estado: <strong>{session.state}</strong> · Ronda {round+1}/15
-          </p>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <Image src="/uabc.png" alt="UABC" width={36} height={36} style={{ opacity:0.75 }} />
+          <div>
+            <h1 style={{ margin:0, fontSize:20, fontWeight:700 }}>💰 CashFlow Wars</h1>
+            <p style={{ margin:0, color:"#888", fontSize:12 }}>Estado: <strong>{session.state}</strong> · Ronda {round+1}/15</p>
+          </div>
         </div>
-        <div style={{ background:"#f5f5f3", borderRadius:12, padding:"0.75rem 1rem", textAlign:"center" }}>
-          <div style={{ fontSize:28, fontWeight:700, letterSpacing:4, color:"#185FA5" }}>{session.code}</div>
-          <div style={{ fontSize:11, color:"#888" }}>Código de sesión</div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {session.state === "playing" && (
+            <div style={{ background: timer<=10?"#FCEBEB":timer<=20?"#FAEEDA":"#EAF3DE", borderRadius:12, padding:"0.6rem 1rem", textAlign:"center", minWidth:70 }}>
+              <div style={{ fontSize:28, fontWeight:700, color:timerColor, fontVariantNumeric:"tabular-nums" }}>{timer}s</div>
+              <div style={{ fontSize:10, color:"#888" }}>tiempo</div>
+            </div>
+          )}
+          <div style={{ background:"#f5f5f3", borderRadius:12, padding:"0.75rem 1rem", textAlign:"center" }}>
+            <div style={{ fontSize:26, fontWeight:700, letterSpacing:4, color:"#185FA5" }}>{session.code}</div>
+            <div style={{ fontSize:11, color:"#888" }}>Código de sesión</div>
+          </div>
         </div>
       </div>
 
@@ -135,13 +162,13 @@ export default function HostPage() {
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
                     <span style={{ fontSize:13, fontWeight:600, color:t.color }}>{t.name}</span>
-                    <span style={{ fontSize:12, color:"#888" }}>{size.emoji} {size.label}</span>
+                    <span style={{ fontSize:11, color:"#888" }}>{size.emoji} {size.label}</span>
                   </div>
-                  <div style={{ background:"#f0f0ee", borderRadius:4, height:6 }}>
-                    <div style={{ background:t.color, height:6, borderRadius:4, width:`${s}%`, transition:"width 0.5s" }}/>
+                  <div style={{ background:"#f0f0ee", borderRadius:4, height:7 }}>
+                    <div style={{ background:t.color, height:7, borderRadius:4, width:`${s}%`, transition:"width 0.6s ease" }}/>
                   </div>
                 </div>
-                <span style={{ fontSize:12, fontWeight:700, color:t.color, minWidth:32, textAlign:"right" }}>{s}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:t.color, minWidth:32, textAlign:"right" }}>{s}</span>
               </div>
             )
           })}
@@ -156,8 +183,11 @@ export default function HostPage() {
             <div key={t.id} style={{ background:t.light, borderRadius:8, padding:"0.75rem" }}>
               <div style={{ fontWeight:700, color:t.color, fontSize:13, marginBottom:4 }}>{t.emoji} {t.name}</div>
               {players.filter(p=>p.team===t.id).map(p=>(
-                <div key={p.id} style={{ fontSize:12, color:"#555" }}>{p.name}</div>
+                <div key={p.id} style={{ fontSize:12, color:"#555", padding:"2px 0" }}>👤 {p.name}</div>
               ))}
+              {players.filter(p=>p.team===t.id).length === 0 && (
+                <div style={{ fontSize:11, color:"#bbb" }}>Sin jugadores</div>
+              )}
             </div>
           ))}
         </div>
@@ -175,17 +205,25 @@ export default function HostPage() {
         )}
         {session.state === "playing" && (
           <>
-            <p style={{ margin:"0 0 4px", fontWeight:600 }}>Ronda {round+1}: {q.mes}</p>
-            <p style={{ margin:"0 0 12px", fontSize:13, color:"#666" }}>{q.situacion}</p>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+              <div>
+                <p style={{ margin:"0 0 4px", fontWeight:700, fontSize:15 }}>Ronda {round+1}: {q.mes}</p>
+                <p style={{ margin:"0 0 8px", fontSize:13, color:"#666" }}>{q.situacion}</p>
+              </div>
+            </div>
+            {/* Barra de tiempo */}
+            <div style={{ background:"#f0f0ee", borderRadius:4, height:6, marginBottom:10 }}>
+              <div style={{ background:timerColor, height:6, borderRadius:4, width:`${(timer/30)*100}%`, transition:"width 1s linear, background 0.3s" }}/>
+            </div>
             <p style={{ margin:"0 0 12px", fontSize:13 }}>
-              Respuestas recibidas: <strong>{roundAnswers.length}</strong> / {players.length}
+              Respuestas recibidas: <strong style={{ color:"#185FA5" }}>{roundAnswers.length}</strong> / {players.length}
             </p>
             <button onClick={showFeedback} style={hostBtnStyle("#185FA5")}>📊 Mostrar retroalimentación</button>
           </>
         )}
         {session.state === "feedback" && (
           <>
-            <p style={{ margin:"0 0 8px", fontWeight:600 }}>💡 {q.concepto}</p>
+            <p style={{ margin:"0 0 4px", fontWeight:700, fontSize:14 }}>💡 {q.concepto}</p>
             <p style={{ margin:"0 0 12px", fontSize:13, color:"#666" }}>
               Mejor opción: <strong>{q.opciones[q.mejor].texto}</strong>
             </p>
@@ -197,10 +235,20 @@ export default function HostPage() {
         {session.state === "results" && (
           <div style={{ textAlign:"center", padding:"1rem" }}>
             <div style={{ fontSize:48 }}>🏆</div>
-            <p style={{ fontWeight:700, fontSize:18 }}>¡Juego terminado!</p>
-            <p style={{ color:"#666", fontSize:14 }}>Ganador: {sortedTeams[0].emoji} {sortedTeams[0].name}</p>
+            <p style={{ fontWeight:700, fontSize:18, margin:"8px 0 4px" }}>¡Juego terminado!</p>
+            <p style={{ color:"#666", fontSize:14, margin:"0 0 12px" }}>Ganador: {sortedTeams[0].emoji} {sortedTeams[0].name}</p>
+            <div style={{ background:"#EAF3DE", borderRadius:10, padding:"0.75rem", textAlign:"left" }}>
+              <p style={{ margin:0, fontSize:13, color:"#3B6D11", fontWeight:600 }}>
+                Los estudiantes deben tomar screenshot de su pantalla y subirlo a Blackboard como evidencia.
+              </p>
+            </div>
           </div>
         )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign:"center", paddingBottom:"1rem" }}>
+        <Image src="/uabc.png" alt="UABC" width={24} height={24} style={{ opacity:0.3 }} />
       </div>
     </div>
   )
@@ -212,5 +260,6 @@ const hostPageStyle: React.CSSProperties = {
 }
 const hostBtnStyle = (bg: string): React.CSSProperties => ({
   padding:"12px 24px", background:bg, color:"#fff", border:"none",
-  borderRadius:10, fontSize:15, fontWeight:700, cursor:"pointer", width:"100%"
+  borderRadius:10, fontSize:15, fontWeight:700, cursor:"pointer", width:"100%",
+  boxShadow:`0 2px 8px ${bg}44`
 })
