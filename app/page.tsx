@@ -8,6 +8,14 @@ import Image from "next/image"
 type Session = { id: string; code: string; current_round: number; state: string }
 type Player = { id: string; name: string; team: number }
 
+const levelImg = (score: number) => {
+  if (score >= 80) return "/nivel5-corporativo.png"
+  if (score >= 60) return "/nivel4-regional.png"
+  if (score >= 40) return "/nivel3-pyme.png"
+  if (score >= 20) return "/nivel2-micro.png"
+  return "/nivel1-kiosco.png"
+}
+
 function UabcLogo() {
   return (
     <div style={{ position:"fixed", bottom:12, right:12, opacity:0.2, pointerEvents:"none" }}>
@@ -323,9 +331,12 @@ export default function Home() {
 
         {myTeam && (
           <div style={{ background:myTeam.light, border:`2px solid ${myTeam.color}`, borderRadius:14, padding:"1rem", width:"100%", marginBottom:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-              <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={40} height={40} style={{ objectFit:"contain" }} />
-              <span style={{ fontWeight:700, fontSize:16, color:myTeam.color }}>{myTeam.name}</span>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={44} height={44} style={{ objectFit:"contain" }} />
+                <span style={{ fontWeight:700, fontSize:16, color:myTeam.color }}>{myTeam.name}</span>
+              </div>
+              <Image src={levelImg(50)} alt="nivel" width={56} height={56} style={{ objectFit:"contain", transition:"all 0.5s ease" }} />
             </div>
             <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:600, color:"#555" }}>Integrantes del equipo:</p>
             {myTeamPlayers.map(p => (

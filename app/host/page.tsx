@@ -7,6 +7,13 @@ import QRCode from "react-qr-code"
 import Image from "next/image"
 
 const teamImg: Record<number,string> = { 1:"/e1.png", 2:"/e2.png", 3:"/e4.png", 4:"/e3.png" }
+const levelImg = (score: number) => {
+  if (score >= 80) return "/nivel5-corporativo.png"
+  if (score >= 60) return "/nivel4-regional.png"
+  if (score >= 40) return "/nivel3-pyme.png"
+  if (score >= 20) return "/nivel2-micro.png"
+  return "/nivel1-kiosco.png"
+}
 
 type Session = { id: string; code: string; current_round: number; state: string }
 type Player = { id: string; name: string; team: number }
@@ -158,19 +165,22 @@ export default function HostPage() {
             const s = scores[t.id]
             const size = getCompanySize(s)
             return (
-              <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+              <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                 <span style={{ fontSize:14 }}>{["🥇","🥈","🥉","4️⃣"][i]}</span>
                 <Image src={teamImg[t.id]} alt={t.name} width={28} height={28} style={{ objectFit:"contain" }} />
                 <div style={{ flex:1 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
                     <span style={{ fontSize:13, fontWeight:600, color:t.color }}>{t.name}</span>
-                    <span style={{ fontSize:11, color:"#888" }}>{size.emoji} {size.label}</span>
+                    <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                      <Image src={levelImg(s)} alt={size.label} width={28} height={28} style={{ objectFit:"contain", transition:"all 0.5s ease" }} />
+                      <span style={{ fontSize:11, color:"#888" }}>{size.label}</span>
+                    </div>
                   </div>
                   <div style={{ background:"#f0f0ee", borderRadius:4, height:7 }}>
                     <div style={{ background:t.color, height:7, borderRadius:4, width:`${s}%`, transition:"width 0.6s ease" }}/>
                   </div>
                 </div>
-                <span style={{ fontSize:13, fontWeight:700, color:t.color, minWidth:32, textAlign:"right" }}>{s}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:t.color, minWidth:28, textAlign:"right" }}>{s}</span>
               </div>
             )
           })}
