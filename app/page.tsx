@@ -86,7 +86,8 @@ export default function Home() {
     if (timer <= 0) return
     const t = setTimeout(() => {
       setTimer(s => s - 1)
-      if (timer <= 6) playSound("tick")
+      if (timer <= 5) playSound("tick")
+      else if (timer === 11) playSound("warning")
     }, 1000)
     return () => clearTimeout(t)
   }, [timer, session])
@@ -100,14 +101,20 @@ export default function Home() {
 
   async function joinTeam(teamId: number) {
     const { data } = await supabase.from("players").insert({ session_id: session!.id, name, team: teamId }).select().single()
-    if (data) { setPlayer(data); setStep("lobby"); playSound("start") }
+    if (data) { setPlayer(data); setStep("lobby"); playSound("join") }
   }
 
   async function submitAnswer(optIdx: number) {
     if (!player || !session) return
     const key = `${player.id}:${session.current_round}`
-    if (answers[key] !== undefined) return
-    await supabase.from("answers").insert({ session_id: session.id, player_id: player.id, round: session.current_round, option_index: optIdx })
+    const prevAnswer = answers[key]
+    if (prevAnswer === optIdx) return  // same option clicked, ignore
+    playSound("select")
+    if (prevAnswer !== undefined) {
+      await supabase.from("answers").update({ option_index: optIdx }).eq("player_id", player.id).eq("round", session.current_round).eq("session_id", session.id)
+    } else {
+      await supabase.from("answers").insert({ session_id: session.id, player_id: player.id, round: session.current_round, option_index: optIdx })
+    }
     const q = QUESTIONS[session.current_round]
     playSound(optIdx === q.mejor ? "correct" : "wrong")
   }
@@ -308,7 +315,7 @@ export default function Home() {
 
         {myAnswer !== undefined && (
           <div style={{ marginTop:10, padding:"8px 12px", background:"#EAF3DE", borderRadius:8, width:"100%", textAlign:"center" }}>
-            <span style={{ fontSize:13, color:"#3B6D11", fontWeight:600 }}>✓ Respuesta registrada — espera al profe</span>
+            <span style={{ fontSize:13, color:"#3B6D11", fontWeight:600 }}>✓ Respuesta registrada — puedes cambiarla antes de que el profe avance</span>
           </div>
         )}
         {!isCaptain && myAnswer === undefined && (
