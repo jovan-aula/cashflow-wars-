@@ -36,18 +36,18 @@ export function startBgm() {
   if (typeof window === "undefined") return
   if (!bgm) {
     bgm = new Audio("/bgm.mp3")
-    bgm.loop = true
+    bgm.loop = false
     bgm.volume = 0
   }
   bgm.currentTime = 0
   bgm.play().catch(() => {})
-  // Fade in
+  // Fade in suave
   let v = 0
   const fade = setInterval(() => {
     if (!bgm) return clearInterval(fade)
-    v = Math.min(0.55, v + 0.04)
+    v = Math.min(0.2, v + 0.015)
     bgm.volume = v
-    if (v >= 0.55) clearInterval(fade)
+    if (v >= 0.2) clearInterval(fade)
   }, 80)
 }
 
