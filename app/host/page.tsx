@@ -25,7 +25,7 @@ export default function HostPage() {
   const [scores, setScores] = useState<Record<number, number>>({ 1:50, 2:50, 3:50, 4:50 })
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState("")
-  const [timer, setTimer] = useState(30)
+  const [timer, setTimer] = useState(60)
 
   useEffect(() => { setUrl(window.location.origin) }, [])
 
@@ -111,7 +111,7 @@ export default function HostPage() {
   const q = QUESTIONS[round]
   const roundAnswers = answers.filter(a => a.round === round)
   const sortedTeams = [...TEAMS].sort((a,b)=>(scores[b.id]||0)-(scores[a.id]||0))
-  const timerColor = timer <= 10 ? "#E24B4A" : timer <= 20 ? "#BA7517" : "#1D9E75"
+  const timerColor = timer <= 20 ? "#E24B4A" : timer <= 40 ? "#BA7517" : "#1D9E75"
 
   if (!session) return (
     <div style={hostPageStyle}>
@@ -225,7 +225,7 @@ export default function HostPage() {
             </div>
             {/* Barra de tiempo */}
             <div style={{ background:"#f0f0ee", borderRadius:4, height:6, marginBottom:10 }}>
-              <div style={{ background:timerColor, height:6, borderRadius:4, width:`${(timer/30)*100}%`, transition:"width 1s linear, background 0.3s" }}/>
+              <div style={{ background:timerColor, height:6, borderRadius:4, width:`${(timer/60)*100}%`, transition:"width 1s linear, background 0.3s" }}/>
             </div>
             <p style={{ margin:"0 0 12px", fontSize:13 }}>
               Respuestas recibidas: <strong style={{ color:"#185FA5" }}>{roundAnswers.length}</strong> / {players.length}

@@ -47,7 +47,7 @@ export default function Home() {
   const [player, setPlayer]   = useState<Player | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [answers, setAnswers] = useState<Record<string, number>>({})
-  const [timer, setTimer]     = useState(30)
+  const [timer, setTimer]     = useState(60)
   const [step, setStep]       = useState<"intro"|"code"|"name"|"team"|"lobby"|"game"|"feedback"|"results">("intro")
   const [introStep, setIntroStep] = useState(0)
 
@@ -296,8 +296,8 @@ export default function Home() {
     const isCaptain = player?.name === captain
     const myAnswer = player ? answers[`${player.id}:${round}`] : undefined
     const myTeam = TEAMS.find(t=>t.id===player?.team)
-    const timerPct = (timer / 30) * 100
-    const timerColor = timer <= 10 ? "#E21B3C" : timer <= 20 ? "#D89E00" : "#1D9E75"
+    const timerPct = (timer / 60) * 100
+    const timerColor = timer <= 20 ? "#E21B3C" : timer <= 40 ? "#D89E00" : "#1D9E75"
 
     // FEEDBACK ──────────────────────────────────────────────────────────────
     if (session.state === "feedback") {
