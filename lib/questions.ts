@@ -25,8 +25,8 @@ export const QUESTIONS: Question[] = [
       {
         texto: "Pagamos todo adelantado — el descuento vale la pena",
         efecto: +10,
-        flujo: "−$50,000 hoy, ahorro de $10,000 a futuro",
-        feedback: "Buen ahorro, pero quedas con solo $30,000 de reserva en tu primer mes. Si algo falla, no tienes colchón. El descuento vale si tu flujo está asegurado."
+        flujo: "−$50,000 hoy, ahorro de $12,500 frente al precio normal de $62,500",
+        feedback: "Buen ahorro ($12,500), pero quedas con solo $30,000 de reserva en tu primer mes. Si algo falla, no tienes colchón. El descuento vale si tu flujo está asegurado."
       },
       {
         texto: "Pagamos en 3 parcialidades — conservamos liquidez",
@@ -53,36 +53,36 @@ export const QUESTIONS: Question[] = [
   {
     id: 2,
     mes: "Mes 1 — Precios",
-    situacion: "Tu primer cliente potencial pregunta cuánto cobras por tu servicio. Tus costos operativos mensuales son $45,000. Estás considerando tu precio.",
-    pregunta: "¿Cuánto cobras por el servicio mensual?",
+    situacion: "Un cliente te pide cotización para un proyecto de consultoría de un mes. Tu equipo calcula que los costos directos del proyecto (horas del equipo, materiales y herramientas) son $45,000.",
+    pregunta: "¿Cuánto le cobras al cliente por el proyecto?",
     opciones: [
       {
         texto: "$40,000 — para ganar el cliente rápido",
         efecto: -20,
-        flujo: "Ingresos < costos. Pérdida de $5,000/mes",
-        feedback: "Cobrar menos de tus costos es un error fatal. Cada mes que operas así, tu empresa se acerca más a la quiebra, aunque tengas clientes."
+        flujo: "Ingresos < costos. Pérdida de $5,000 en este proyecto",
+        feedback: "Cobrar menos de lo que te cuesta producir es un error fatal. Cada proyecto que cotizas así tu empresa pierde dinero aunque trabaje duro. El cliente barato sale caro."
       },
       {
         texto: "$50,000 — cubre costos con margen mínimo",
         efecto: +5,
-        flujo: "Utilidad de $5,000/mes — muy ajustado",
-        feedback: "Cubres costos, pero sin margen para crecer, invertir o tener contingencias. Es supervivencia, no negocio."
+        flujo: "Utilidad de $5,000 en el proyecto — muy ajustado",
+        feedback: "Cubres costos, pero sin margen para imprevistos, errores o reinversión. Es supervivencia, no negocio. Un margen del 11% no sostiene ninguna empresa a largo plazo."
       },
       {
         texto: "$65,000 — precio con margen del 30%",
         efecto: +20,
-        flujo: "Utilidad de $20,000/mes — saludable",
-        feedback: "¡Correcto! Un margen del 30% te permite operar, reinvertir y tener reserva para meses malos. El precio debe cubrir costos + utilidad + contingencia."
+        flujo: "Utilidad de $20,000 en el proyecto — saludable",
+        feedback: "¡Correcto! Un margen del 30% sobre costos te permite operar, reinvertir y tener reserva para proyectos con imprevistos. El precio debe cubrir costos + utilidad + contingencia."
       },
       {
         texto: "$90,000 — precio premium sin justificación",
         efecto: -5,
-        flujo: "Alta utilidad potencial, pero pocos clientes",
-        feedback: "Un precio alto sin propuesta de valor clara espanta clientes. El precio premium funciona solo si puedes justificarlo con resultados o diferenciación."
+        flujo: "Alta utilidad potencial, pero el cliente busca otra opción",
+        feedback: "Un precio alto sin propuesta de valor clara espanta clientes. El precio premium funciona solo si puedes justificarlo con resultados, experiencia o diferenciación real."
       }
     ],
     mejor: 2,
-    concepto: "El precio correcto cubre costos + margen de utilidad + reserva de contingencia."
+    concepto: "El precio correcto cubre costos directos + margen de utilidad + reserva de contingencia. Nunca cotices por debajo de tu costo."
   },
   {
     id: 3,
@@ -189,7 +189,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 6,
     mes: "Mes 3 — Mes lento",
-    situacion: "Es temporada baja. Los ingresos cayeron 40%. Solo entraron $30,000 pero sus gastos fijos son $55,000. Tienen $40,000 en caja.",
+    situacion: "Es temporada baja. Los ingresos cayeron más del 50% respecto a un mes normal. Solo entraron $30,000 pero sus gastos fijos son $55,000. Tienen $40,000 en caja.",
     pregunta: "¿Cómo manejan el déficit de $25,000?",
     opciones: [
       {
@@ -279,10 +279,10 @@ export const QUESTIONS: Question[] = [
         feedback: "El peor error posible. Las multas del SAT pueden triplicar la deuda original. La evasión fiscal destruye empresas — siempre cumple, negocia si es necesario."
       },
       {
-        texto: "Desde hoy provisionamos 10% mensual para impuestos",
+        texto: "Pagamos los $32,000 hoy + provisionamos 10% mensual para nunca repetir esto",
         efecto: +20,
-        flujo: "Pagamos hoy y nunca volveremos a estar en esta situación",
-        feedback: "¡La mejor respuesta! Resolver el problema de hoy Y aprender de él. La provisión mensual de impuestos es una práctica básica de finanzas sanas."
+        flujo: "Deuda fiscal liquidada + hábito financiero correcto desde hoy",
+        feedback: "¡La mejor respuesta! Pagas lo que debes Y corriges el hábito que te metió en este problema. Apartar el 10% de los ingresos cada mes para impuestos es una práctica básica de finanzas sanas."
       }
     ],
     mejor: 3,
@@ -359,14 +359,14 @@ export const QUESTIONS: Question[] = [
   {
     id: 11,
     mes: "Mes 6 — Nómina e incentivos",
-    situacion: "Tu equipo ha trabajado muy bien. Quieres incentivarlos pero el flujo es ajustado. Utilidad del mes: $25,000. Nómina base: $40,000.",
+    situacion: "Tu equipo ha trabajado muy bien. Quieres incentivarlos pero el flujo es ajustado. La nómina base ($40,000) ya está cubierta. La utilidad neta disponible este mes es $25,000.",
     pregunta: "¿Cómo reconoces el desempeño de tu equipo?",
     opciones: [
       {
         texto: "Damos bono de $5,000 a cada uno de los 4 empleados",
         efecto: -15,
-        flujo: "−$20,000 adicionales. Flujo entra en déficit",
-        feedback: "El reconocimiento es importante, pero dar bonos cuando el flujo no lo permite crea un problema mayor. El equipo prefiere una empresa sana a un bono puntual."
+        flujo: "−$20,000 adicionales. Utilidad cae a $5,000 — sin colchón para ningún imprevisto",
+        feedback: "El reconocimiento es importante, pero consumir casi toda la utilidad en bonos deja la empresa sin margen ante cualquier imprevisto. Si ese mes llega una factura inesperada, no podrás cubrirla."
       },
       {
         texto: "Prometemos bono el mes siguiente si el flujo lo permite",
@@ -471,10 +471,10 @@ export const QUESTIONS: Question[] = [
         feedback: "Con una cuota de $48,000 y utilidad de $45,000, estás en déficit desde el día 1. El crédito grande solo funciona si genera ingresos adicionales que lo paguen."
       },
       {
-        texto: "Tomamos $200,000 — cuota manejable de ~$19,000/mes",
+        texto: "Tomamos $200,000 a 12 meses — cuota manejable de ~$19,000/mes",
         efecto: +25,
-        flujo: "Utilidad neta de $26,000/mes después de la cuota",
-        feedback: "¡Excelente decisión! Apalancamiento inteligente: tomas lo que puedes pagar cómodamente y conservas margen de maniobra. El crédito correcto es el que puedes pagar aunque las cosas vayan un 20% peor."
+        flujo: "Utilidad neta de $26,000/mes después de pagar la cuota",
+        feedback: "¡Excelente decisión! Apalancamiento inteligente: tomas solo lo que puedes pagar cómodamente y conservas margen de maniobra. A 12 meses con 14% anual la cuota es ~$19,000 — menos del 42% de tu utilidad. El crédito correcto es el que puedes pagar aunque los ingresos bajen un 20%."
       },
       {
         texto: "No tomamos nada — preferimos crecer con utilidades propias",
