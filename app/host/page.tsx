@@ -245,13 +245,31 @@ export default function HostPage() {
           </>
         )}
         {session.state === "results" && (
-          <div style={{ textAlign:"center", padding:"1rem" }}>
-            <div style={{ fontSize:48 }}>🏆</div>
-            <p style={{ fontWeight:700, fontSize:18, margin:"8px 0 4px" }}>¡Juego terminado!</p>
-            <p style={{ color:"#666", fontSize:14, margin:"0 0 12px" }}>Ganador: {sortedTeams[0].emoji} {sortedTeams[0].name}</p>
+          <div style={{ textAlign:"center", padding:"0.5rem" }}>
+            <div style={{ fontSize:44 }}>🏆</div>
+            <p style={{ fontWeight:800, fontSize:20, margin:"6px 0 16px" }}>¡Juego terminado!</p>
+            {/* Podio de equipos */}
+            <div style={{ display:"grid", gap:8, marginBottom:14 }}>
+              {sortedTeams.map((t, i) => {
+                const s = scores[t.id]
+                const calificacion = parseFloat(((s / 100) * 10).toFixed(1))
+                const medal = ["🥇","🥈","🥉","4️⃣"][i]
+                return (
+                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background: i===0?`${t.color}18`:"#f9f9f9", borderRadius:10, padding:"0.6rem 1rem", border:`1.5px solid ${i===0?t.color+"44":"#eee"}` }}>
+                    <span style={{ fontSize:20 }}>{medal}</span>
+                    <Image src={teamImg[t.id]} alt={t.name} width={32} height={32} style={{ objectFit:"contain" }} />
+                    <span style={{ fontWeight:700, color:t.color, flex:1, textAlign:"left" }}>{t.name}</span>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontWeight:900, fontSize:18, color:t.color }}>{calificacion}</div>
+                      <div style={{ fontSize:10, color:"#999" }}>/ 10</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
             <div style={{ background:"#EAF3DE", borderRadius:10, padding:"0.75rem", textAlign:"left" }}>
               <p style={{ margin:0, fontSize:13, color:"#3B6D11", fontWeight:600 }}>
-                Los estudiantes deben tomar screenshot de su pantalla y subirlo a Blackboard como evidencia.
+                Los estudiantes deben tomar screenshot de su pantalla con su calificación y subirlo a Blackboard.
               </p>
             </div>
           </div>

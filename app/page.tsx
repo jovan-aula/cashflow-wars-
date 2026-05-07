@@ -419,48 +419,68 @@ export default function Home() {
   if (step === "results" || session?.state === "results") {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     const myTeamPlayers = players.filter(p=>p.team===player?.team)
+
+    // Calificación del equipo: decisiones correctas / 15
+    let correct = 0
+    for (let r = 0; r < QUESTIONS.length; r++) {
+      const captainName = getCaptain(myTeamPlayers.map(p=>p.name), r)
+      const captainPlayer = myTeamPlayers.find(p=>p.name===captainName)
+      if (!captainPlayer) continue
+      const ans = answers[`${captainPlayer.id}:${r}`]
+      if (ans === QUESTIONS[r].mejor) correct++
+    }
+    const totalAnswered = QUESTIONS.length
+    const calificacion = parseFloat(((correct / totalAnswered) * 10).toFixed(1))
+    const pct = Math.round((correct / totalAnswered) * 100)
+    const calColor = calificacion >= 8 ? "#4DFFA8" : calificacion >= 6 ? "#FFD700" : "#FF6B6B"
+    const calLabel = calificacion >= 9 ? "¡Excelente!" : calificacion >= 8 ? "¡Muy bien!" : calificacion >= 6 ? "Bien" : calificacion >= 5 ? "Suficiente" : "A mejorar"
+
     return (
       <div style={darkPageStyle(`linear-gradient(160deg, #0d0d1a 0%, ${myTeam?.color||"#1D9E75"}bb 100%)`)}>
         <style>{ANIM}</style>
         <div style={{ animation:"popIn 0.8s cubic-bezier(0.34,1.56,0.64,1)", marginBottom:10 }}>
-          <Image src="/win.png" alt="resultados" width={140} height={140} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 32px rgba(0,0,0,0.5))", animation:"pulse 2.5s ease-in-out infinite" }} />
+          <Image src="/win.png" alt="resultados" width={130} height={130} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 32px rgba(0,0,0,0.5))", animation:"pulse 2.5s ease-in-out infinite" }} />
         </div>
-        <h2 style={{ fontSize:30, fontWeight:900, color:"#fff", margin:"0 0 4px", textAlign:"center", textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>¡Resultados finales!</h2>
-        <p style={{ fontSize:14, color:"rgba(255,255,255,0.55)", margin:"0 0 24px", textAlign:"center" }}>CashFlow Wars · UABC Mercadotecnia</p>
+        <h2 style={{ fontSize:28, fontWeight:900, color:"#fff", margin:"0 0 4px", textAlign:"center" }}>¡Resultados finales!</h2>
+        <p style={{ fontSize:14, color:"rgba(255,255,255,0.5)", margin:"0 0 20px", textAlign:"center" }}>CashFlow Wars · UABC Mercadotecnia</p>
 
+        {/* Calificación grande */}
+        <div style={{ background:"rgba(255,255,255,0.08)", backdropFilter:"blur(16px)", border:`2px solid ${calColor}66`, borderRadius:20, padding:"1.25rem", width:"100%", maxWidth:400, marginBottom:12, textAlign:"center", animation:"slideUp 0.6s 0.1s both" }}>
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", fontWeight:700, letterSpacing:2, marginBottom:8 }}>CALIFICACIÓN DEL EQUIPO</div>
+          <div style={{ fontSize:72, fontWeight:900, color:calColor, lineHeight:1, textShadow:`0 0 30px ${calColor}88` }}>{calificacion}</div>
+          <div style={{ fontSize:14, color:calColor, fontWeight:700, marginTop:4 }}>{calLabel}</div>
+          <div style={{ margin:"12px 0 4px", background:"rgba(255,255,255,0.06)", borderRadius:8, height:10 }}>
+            <div style={{ height:10, borderRadius:8, background:calColor, width:`${pct}%`, transition:"width 1s ease", boxShadow:`0 0 10px ${calColor}88` }}/>
+          </div>
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", marginTop:6 }}>
+            {correct} de {totalAnswered} decisiones correctas
+          </div>
+        </div>
+
+        {/* Equipo e integrantes */}
         {myTeam && (
-          <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(16px)", border:"2px solid rgba(255,255,255,0.25)", borderRadius:20, padding:"1.25rem", width:"100%", maxWidth:400, marginBottom:14, animation:"slideUp 0.6s 0.2s both" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={58} height={58} style={{ objectFit:"contain", filter:"drop-shadow(0 2px 10px rgba(0,0,0,0.5))" }} />
-                <span style={{ fontWeight:900, fontSize:20, color:"#fff" }}>{myTeam.name}</span>
-              </div>
-              <Image src={levelImg(50)} alt="nivel" width={60} height={60} style={{ objectFit:"contain" }} />
+          <div style={{ background:"rgba(255,255,255,0.08)", backdropFilter:"blur(16px)", border:"1px solid rgba(255,255,255,0.18)", borderRadius:18, padding:"1.1rem", width:"100%", maxWidth:400, marginBottom:12, animation:"slideUp 0.6s 0.25s both" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <Image src={teamImg[myTeam.id]} alt={myTeam.name} width={48} height={48} style={{ objectFit:"contain" }} />
+              <span style={{ fontWeight:900, fontSize:18, color:"#fff" }}>{myTeam.name}</span>
             </div>
-            <p style={{ margin:"0 0 10px", fontSize:13, fontWeight:700, color:"rgba(255,255,255,0.65)" }}>Integrantes del equipo:</p>
             {myTeamPlayers.map((p, i) => (
-              <div key={p.id} style={{ fontSize:15, padding:"7px 0", color:"#fff", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:10, animation:`slideUp 0.4s ${0.2+i*0.07}s both` }}>
-                <span style={{ fontSize:22 }}>👤</span> {p.name}
+              <div key={p.id} style={{ fontSize:14, padding:"6px 0", color:"rgba(255,255,255,0.85)", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", gap:10, animation:`slideUp 0.4s ${0.25+i*0.07}s both` }}>
+                <span style={{ fontSize:20 }}>👤</span> {p.name}
               </div>
             ))}
           </div>
         )}
 
-        <div style={{ background:"rgba(255,240,100,0.12)", backdropFilter:"blur(8px)", border:"1.5px solid rgba(255,220,80,0.4)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:12, animation:"slideUp 0.6s 0.4s both" }}>
+        {/* Evidencia */}
+        <div style={{ background:"rgba(255,240,100,0.1)", backdropFilter:"blur(8px)", border:"1.5px solid rgba(255,220,80,0.35)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:12, animation:"slideUp 0.6s 0.4s both" }}>
           <p style={{ margin:"0 0 6px", fontWeight:900, fontSize:15, color:"#FFD700" }}>📸 Evidencia para Blackboard</p>
           <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.85)", lineHeight:1.65 }}>
-            Toma un <strong>screenshot de esta pantalla</strong> con los nombres de tu equipo visibles y súbelo a Blackboard como evidencia de participación.
+            Toma un <strong>screenshot de esta pantalla</strong> con tu calificación y los nombres visibles, y súbelo a Blackboard.
           </p>
         </div>
 
-        <div style={{ background:"rgba(29,158,117,0.18)", backdropFilter:"blur(8px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, border:"1px solid rgba(29,158,117,0.4)", animation:"slideUp 0.6s 0.55s both" }}>
-          <p style={{ margin:"0 0 5px", fontWeight:700, fontSize:13, color:"#4DFFA8" }}>💡 Para llevar:</p>
-          <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.8)", lineHeight:1.65 }}>
-            El flujo de efectivo no es lo mismo que la utilidad. Una empresa puede tener ganancias en papel y quebrar por falta de liquidez.
-          </p>
-        </div>
-
-        <div style={{ marginTop:22, display:"flex", alignItems:"center", gap:8, opacity:0.3 }}>
+        <div style={{ marginTop:10, display:"flex", alignItems:"center", gap:8, opacity:0.3 }}>
           <Image src="/uabc.png" alt="UABC" width={20} height={20} />
           <span style={{ fontSize:11, color:"#fff" }}>UABC · Mercadotecnia</span>
         </div>
