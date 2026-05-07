@@ -32,7 +32,7 @@ export default function HostPage() {
   // Timer del profe
   useEffect(() => {
     if (!session || session.state !== "playing") return
-    setTimer(30)
+    setTimer(60)
   }, [session?.current_round, session?.state])
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function HostPage() {
   async function startGame() {
     await supabase.from("sessions").update({ state:"playing", current_round:0 }).eq("id", session!.id)
     setSession(s => s ? {...s, state:"playing", current_round:0} : s)
-    setTimer(30)
+    setTimer(60)
     playSound("start")
   }
 
@@ -103,7 +103,7 @@ export default function HostPage() {
     } else {
       await supabase.from("sessions").update({ state:"playing", current_round:next }).eq("id", session!.id)
       setSession(s => s ? {...s, state:"playing", current_round:next} : s)
-      setTimer(30)
+      setTimer(60)
     }
   }
 

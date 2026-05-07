@@ -97,7 +97,7 @@ export default function Home() {
             }
             return s
           })
-          if (s.state === "playing") setTimer(30)
+          if (s.state === "playing") setTimer(60)
         })
       .on("postgres_changes", { event:"*", schema:"public", table:"players", filter:`session_id=eq.${session.id}` },
         async () => {
