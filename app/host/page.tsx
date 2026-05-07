@@ -21,7 +21,8 @@ export default function HostPage() {
   async function createSession() {
     setLoading(true)
     const code = generateCode()
-    const { data } = await supabase.from("sessions").insert({ code, state:"lobby", current_round:0 }).select().single()
+    const { data, error } = await supabase.from("sessions").insert({ code, state:"lobby", current_round:0 }).select().single()
+    if (error) { alert("Error: " + error.message); console.error(error) }
     if (data) setSession(data)
     setLoading(false)
   }
