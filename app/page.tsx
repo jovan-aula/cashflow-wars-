@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { TEAMS, getCaptain, getCompanySize, playSound, startBgm, pauseBgm, stopBgm } from "@/lib/game"
 import { QUESTIONS } from "@/lib/questions"
@@ -50,6 +50,7 @@ export default function Home() {
   const [timer, setTimer]     = useState(60)
   const [step, setStep]       = useState<"intro"|"code"|"name"|"team"|"lobby"|"game"|"feedback"|"results">("intro")
   const [introStep, setIntroStep] = useState(0)
+  const sessionRef = useRef<Session | null>(null)
 
   const INTRO_STEPS = [
     { title: "CASHFLOW WARS", sub: "El simulador empresarial", emoji: "💰" },
@@ -75,28 +76,26 @@ export default function Home() {
       .on("postgres_changes", { event:"*", schema:"public", table:"sessions", filter:`id=eq.${session.id}` },
         (payload) => {
           const s = payload.new as Session
-          setSession(prev => {
-            // Reacting to state transitions
-            if (prev?.state !== s.state) {
-              if (s.state === "playing") {
-                // New round starting
-                startBgm()
-                setTimeout(() => playSound("roundstart"), 80)
-              } else if (s.state === "feedback") {
-                pauseBgm()
-                setTimeout(() => playSound("reveal"), 100)
-              } else if (s.state === "results") {
-                stopBgm()
-                setTimeout(() => { playSound("drumroll"); setTimeout(() => playSound("win"), 900) }, 200)
-                setStep("results")
-              }
-            } else if (s.state === "playing" && prev?.current_round !== s.current_round) {
-              // Same "playing" state but new round
+          const prev = sessionRef.current
+          sessionRef.current = s
+          // Handle state transitions (safe — outside setSession updater)
+          if (prev?.state !== s.state) {
+            if (s.state === "playing") {
               startBgm()
               setTimeout(() => playSound("roundstart"), 80)
+            } else if (s.state === "feedback") {
+              pauseBgm()
+              setTimeout(() => playSound("reveal"), 100)
+            } else if (s.state === "results") {
+              stopBgm()
+              setTimeout(() => { playSound("drumroll"); setTimeout(() => playSound("win"), 900) }, 200)
+              setStep("results")
             }
-            return s
-          })
+          } else if (s.state === "playing" && prev?.current_round !== s.current_round) {
+            startBgm()
+            setTimeout(() => playSound("roundstart"), 80)
+          }
+          setSession(s)
           if (s.state === "playing") setTimer(60)
         })
       .on("postgres_changes", { event:"*", schema:"public", table:"players", filter:`session_id=eq.${session.id}` },
@@ -123,7 +122,7 @@ export default function Home() {
     const t = setTimeout(() => {
       setTimer(s => s - 1)
       if (timer <= 5) playSound("tick")
-      else if (timer === 11) playSound("warning")
+      else if (timer === 15) playSound("warning")
     }, 1000)
     return () => clearTimeout(t)
   }, [timer, session])

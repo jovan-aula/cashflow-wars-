@@ -29,6 +29,13 @@ export default function HostPage() {
 
   useEffect(() => { setUrl(window.location.origin) }, [])
 
+  // Restaurar scores desde localStorage si el host recarga accidentalmente
+  useEffect(() => {
+    if (!session) return
+    const saved = localStorage.getItem(`scores:${session.id}`)
+    if (saved) setScores(JSON.parse(saved))
+  }, [session?.id])
+
   // Timer del profe
   useEffect(() => {
     if (!session || session.state !== "playing") return
@@ -90,6 +97,7 @@ export default function HostPage() {
       }
     })
     setScores(newScores)
+    localStorage.setItem(`scores:${session!.id}`, JSON.stringify(newScores))
     await supabase.from("sessions").update({ state:"feedback" }).eq("id", session!.id)
     setSession(s => s ? {...s, state:"feedback"} : s)
   }
