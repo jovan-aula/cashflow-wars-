@@ -29,41 +29,154 @@ export function generateCode(): string {
   return words[Math.floor(Math.random() * words.length)] + nums
 }
 
-// ── BGM ───────────────────────────────────────────────────────────────────────
-let bgm: HTMLAudioElement | null = null
+// ── CHIPTUNE BGM ENGINE ───────────────────────────────────────────────────────
+// Lookahead scheduler — immune to setInterval drift
+// Progression: G – Em – C – D  (150 bpm, eighth-note steps)
+
+const CHIP_BPM    = 150
+const CHIP_STEP   = 60 / CHIP_BPM / 2   // seconds per eighth note ≈ 0.200 s
+const LOOKAHEAD   = 0.12                 // schedule 120 ms ahead
+const SCHED_MS    = 20                   // check every 20 ms
+
+// freq = 0 → rest
+const CHIP_MELODY: number[] = [
+  // Bar 1 — G (ascending motif)
+  392,   0, 494, 587,  659, 587, 494,   0,
+  // Bar 2 — Em (higher tension)
+  330,   0, 494,   0,  659, 784, 659,   0,
+  // Bar 3 — C (flowing)
+  523,   0, 659,   0,  784, 659, 523,   0,
+  // Bar 4 — D → resolve
+  587, 494, 392,   0,  587, 659, 784,   0,
+]
+
+const CHIP_BASS: number[] = [
+  196, 0, 196, 0, 247, 0, 196, 0,   // G
+  165, 0, 165, 0, 247, 0, 165, 0,   // Em
+  131, 0, 131, 0, 196, 0, 131, 0,   // C
+  147, 0, 147, 0, 220, 0, 294, 0,   // D
+]
+
+let chipCtx:    AudioContext | null = null
+let chipMaster: GainNode    | null = null
+let chipTimer:  ReturnType<typeof setInterval> | null = null
+let chipNext    = 0
+let chipStep    = 0
+let chipRunning = false
+
+function chipScheduleStep(ctx: AudioContext, master: GainNode, s: number, t: number) {
+  const idx = s % 32
+  const dur = CHIP_STEP
+
+  // Melody — square wave (classic chiptune)
+  const mFreq = CHIP_MELODY[idx]
+  if (mFreq > 0) {
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(master)
+    o.type = "square"; o.frequency.value = mFreq
+    g.gain.setValueAtTime(0, t)
+    g.gain.linearRampToValueAtTime(0.14, t + 0.005)
+    g.gain.setValueAtTime(0.14, t + dur * 0.72)
+    g.gain.linearRampToValueAtTime(0, t + dur * 0.96)
+    o.start(t); o.stop(t + dur)
+  }
+
+  // Bass — triangle wave
+  const bFreq = CHIP_BASS[idx]
+  if (bFreq > 0) {
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(master)
+    o.type = "triangle"; o.frequency.value = bFreq
+    g.gain.setValueAtTime(0, t)
+    g.gain.linearRampToValueAtTime(0.22, t + 0.008)
+    g.gain.setValueAtTime(0.22, t + dur * 0.82)
+    g.gain.linearRampToValueAtTime(0, t + dur)
+    o.start(t); o.stop(t + dur + 0.01)
+  }
+
+  // Kick — pitch-swept sine, beats 1 & 3 (steps 0, 8, 16, 24)
+  if (idx % 8 === 0) {
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(master)
+    o.type = "sine"
+    o.frequency.setValueAtTime(130, t)
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.13)
+    g.gain.setValueAtTime(0.65, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2)
+    o.start(t); o.stop(t + 0.22)
+  }
+
+  // Snare — filtered noise, beats 2 & 4 (steps 4, 12, 20, 28)
+  if (idx % 8 === 4) {
+    const len = Math.ceil(ctx.sampleRate * 0.14)
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+    const d   = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain()
+    src.buffer = buf
+    f.type = "bandpass"; f.frequency.value = 1800; f.Q.value = 0.9
+    src.connect(f); f.connect(g); g.connect(master)
+    g.gain.setValueAtTime(0.48, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12)
+    src.start(t); src.stop(t + 0.14)
+  }
+
+  // Hi-hat — high-pass noise every step (accent on downbeats)
+  {
+    const len = Math.ceil(ctx.sampleRate * 0.038)
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+    const d   = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain()
+    src.buffer = buf
+    f.type = "highpass"; f.frequency.value = 7500
+    src.connect(f); f.connect(g); g.connect(master)
+    g.gain.setValueAtTime(idx % 2 === 0 ? 0.09 : 0.045, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.032)
+    src.start(t); src.stop(t + 0.038)
+  }
+}
 
 export function startBgm() {
-  if (typeof window === "undefined") return
-  if (!bgm) {
-    bgm = new Audio("/bgm.mp3")
-    bgm.loop = false
-    bgm.volume = 0
-  }
-  bgm.currentTime = 0
-  bgm.play().catch(() => {})
-  // Fade in suave
-  let v = 0
-  const fade = setInterval(() => {
-    if (!bgm) return clearInterval(fade)
-    v = Math.min(0.2, v + 0.015)
-    bgm.volume = v
-    if (v >= 0.2) clearInterval(fade)
-  }, 80)
+  if (typeof window === "undefined" || chipRunning) return
+  chipRunning = true
+  try {
+    chipCtx    = new (window.AudioContext || (window as any).webkitAudioContext)()
+    chipMaster = chipCtx.createGain()
+    chipMaster.gain.setValueAtTime(0, chipCtx.currentTime)
+    chipMaster.gain.linearRampToValueAtTime(0.72, chipCtx.currentTime + 1.4)
+    chipMaster.connect(chipCtx.destination)
+    chipNext = chipCtx.currentTime + 0.05
+    chipStep = 0
+
+    chipTimer = setInterval(() => {
+      if (!chipCtx || !chipMaster || !chipRunning) return
+      while (chipNext < chipCtx.currentTime + LOOKAHEAD) {
+        chipScheduleStep(chipCtx, chipMaster, chipStep, chipNext)
+        chipNext += CHIP_STEP
+        chipStep++
+      }
+    }, SCHED_MS)
+  } catch (_) {}
 }
 
 export function pauseBgm(soft = true) {
-  if (!bgm) return
-  if (!soft) { bgm.pause(); bgm.volume = 0; return }
-  // Fade out then pause
-  const fade = setInterval(() => {
-    if (!bgm) return clearInterval(fade)
-    bgm.volume = Math.max(0, bgm.volume - 0.06)
-    if (bgm.volume <= 0) { bgm.pause(); clearInterval(fade) }
-  }, 60)
+  chipRunning = false
+  if (chipTimer) { clearInterval(chipTimer); chipTimer = null }
+  const ctx = chipCtx, master = chipMaster
+  chipCtx = null; chipMaster = null
+  if (!ctx || !master) return
+  if (soft) {
+    const t = ctx.currentTime
+    master.gain.setValueAtTime(master.gain.value, t)
+    master.gain.linearRampToValueAtTime(0, t + 0.4)
+    setTimeout(() => { try { ctx.close() } catch (_) {} }, 500)
+  } else {
+    try { ctx.close() } catch (_) {}
+  }
 }
 
 export function stopBgm() {
-  if (!bgm) return
   pauseBgm(false)
 }
 

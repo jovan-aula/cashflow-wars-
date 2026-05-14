@@ -51,6 +51,7 @@ export default function Home() {
   const [step, setStep]       = useState<"intro"|"code"|"name"|"team"|"lobby"|"game"|"feedback"|"results">("intro")
   const [introStep, setIntroStep] = useState(0)
   const sessionRef = useRef<Session | null>(null)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const INTRO_STEPS = [
     { title: "CASHFLOW WARS", sub: "El simulador empresarial", emoji: "💰" },
@@ -72,7 +73,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!session) return
-    const ch = supabase.channel(`session:${session.id}`)
+    const ch = supabase.channel(`session:${session.id}`, { config: { presence: { key: session.id } } })
       .on("postgres_changes", { event:"*", schema:"public", table:"sessions", filter:`id=eq.${session.id}` },
         (payload) => {
           const s = payload.new as Session
@@ -112,9 +113,33 @@ export default function Home() {
             setAnswers(map)
           }
         })
+      .on("presence", { event: "leave" }, ({ leftPresences }) => {
+        leftPresences.forEach((p: any) => {
+          if (p.player_id) {
+            supabase.from("players").delete().eq("id", p.player_id).then(() => {})
+          }
+        })
+      })
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    channelRef.current = ch
+    return () => { supabase.removeChannel(ch); channelRef.current = null }
   }, [session])
+
+  // Registrar presencia cuando el jugador se une
+  useEffect(() => {
+    if (!player || !channelRef.current) return
+    channelRef.current.track({ player_id: player.id })
+  }, [player])
+
+  useEffect(() => {
+    if (session?.state !== "feedback" || !player) return
+    const myAnswer = answers[`${player.id}:${session.current_round}`]
+    if (myAnswer === undefined) return
+    const q = QUESTIONS[session.current_round]
+    const t = setTimeout(() => playSound(myAnswer === q.mejor ? "correct" : "wrong"), 700)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.state, session?.current_round])
 
   useEffect(() => {
     if (!session || session.state !== "playing") return
@@ -135,8 +160,20 @@ export default function Home() {
   }
 
   async function joinTeam(teamId: number) {
-    const { data } = await supabase.from("players").insert({ session_id: session!.id, name, team: teamId }).select().single()
-    if (data) { setPlayer(data); setStep("lobby"); playSound("whoosh"); setTimeout(() => playSound("join"), 180) }
+    const { data: existing } = await supabase.from("players").select("*").eq("session_id", session!.id).eq("name", name).maybeSingle()
+    if (existing) {
+      if (existing.team !== teamId) {
+        await supabase.from("players").update({ team: teamId }).eq("id", existing.id)
+      }
+      setPlayer({ ...existing, team: teamId })
+    } else {
+      const { data } = await supabase.from("players").insert({ session_id: session!.id, name, team: teamId }).select().single()
+      if (!data) return
+      setPlayer(data)
+    }
+    setStep("lobby")
+    playSound("whoosh")
+    setTimeout(() => playSound("join"), 180)
   }
 
   async function submitAnswer(optIdx: number) {
@@ -150,8 +187,6 @@ export default function Home() {
     } else {
       await supabase.from("answers").insert({ session_id: session.id, player_id: player.id, round: session.current_round, option_index: optIdx })
     }
-    const q = QUESTIONS[session.current_round]
-    playSound(optIdx === q.mejor ? "correct" : "wrong")
   }
 
   // ── INTRO ──────────────────────────────────────────────────────────────────
@@ -300,9 +335,13 @@ export default function Home() {
 
     // FEEDBACK ──────────────────────────────────────────────────────────────
     if (session.state === "feedback") {
-      const myAns = myAnswer !== undefined ? q.opciones[myAnswer] : null
+      // Usar la respuesta del capitán para TODOS los miembros del equipo
+      const captainPlayerObj = players.find(p => p.name === captain && p.team === player?.team)
+      const captainAnswerIdx = captainPlayerObj ? answers[`${captainPlayerObj.id}:${round}`] : undefined
+      const teamAnswerIdx = isCaptain ? myAnswer : captainAnswerIdx
+      const displayAns = teamAnswerIdx !== undefined ? q.opciones[teamAnswerIdx] : null
       const best = q.opciones[q.mejor]
-      const isCorrect = myAnswer === q.mejor
+      const isCorrect = teamAnswerIdx === q.mejor
       const bgGrad = isCorrect
         ? "radial-gradient(ellipse at 50% 0%, #1a5c30 0%, #0a2010 100%)"
         : "radial-gradient(ellipse at 50% 0%, #5c1a1a 0%, #200a0a 100%)"
@@ -310,16 +349,21 @@ export default function Home() {
         <div style={{ minHeight:"100dvh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start", fontFamily:"system-ui,sans-serif", background:bgGrad, padding:"1.5rem 1rem 3rem", paddingTop:"2.5rem" }}>
           <style>{ANIM}</style>
           <div style={{ animation:"popIn 0.7s cubic-bezier(0.34,1.56,0.64,1)", textAlign:"center", marginBottom:20 }}>
-            <Image src={isCorrect?"/ok.png":"/fail.png"} alt="" width={120} height={120} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 24px rgba(0,0,0,0.5))" }} />
+            <Image src={isCorrect?"/ok.png":"/fail.png"} alt="" width={160} height={160} style={{ objectFit:"contain", filter:"drop-shadow(0 4px 24px rgba(0,0,0,0.5))" }} />
             <h3 style={{ color:"#fff", fontSize:28, fontWeight:900, margin:"14px 0 0", textShadow:"0 2px 12px rgba(0,0,0,0.4)" }}>
               {isCorrect ? "¡Decisión correcta! 🎉" : "Aquí está la clave:"}
             </h3>
+            {!isCaptain && (
+              <p style={{ fontSize:12, color:"rgba(255,255,255,0.45)", margin:"6px 0 0" }}>
+                Tu equipo eligió la opción de <strong style={{ color:myTeam?.color }}>{captain}</strong>
+              </p>
+            )}
           </div>
-          {myAns && (
+          {displayAns && (
             <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(12px)", borderRadius:16, padding:"1rem 1.25rem", width:"100%", maxWidth:400, marginBottom:10, border:`1px solid rgba(255,255,255,${isCorrect?0.25:0.15})`, animation:"slideUp 0.5s 0.15s both" }}>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:700, letterSpacing:1.5, marginBottom:6 }}>TU RESPUESTA</div>
-              <p style={{ margin:"0 0 6px", fontSize:14, color:"#fff", fontWeight:700 }}>{myAns.texto}</p>
-              <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6 }}>{myAns.feedback}</p>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.55)", fontWeight:700, letterSpacing:1.5, marginBottom:6 }}>RESPUESTA DE TU EQUIPO</div>
+              <p style={{ margin:"0 0 6px", fontSize:14, color:"#fff", fontWeight:700 }}>{displayAns.texto}</p>
+              <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.6 }}>{displayAns.feedback}</p>
             </div>
           )}
           {!isCorrect && (
@@ -346,16 +390,19 @@ export default function Home() {
 
         {/* ── Top bar ── */}
         <div style={{ padding:"0.875rem 1rem 0.5rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          {/* Round progress */}
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ background:myTeam?.color||"#1D9E75", borderRadius:8, padding:"3px 10px", fontSize:12, fontWeight:800, color:"#fff" }}>
-              {round+1}/15
+          {/* Team mascot + round */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <Image src={teamImg[myTeam?.id||1]} alt={myTeam?.name||""} width={52} height={52} style={{ objectFit:"contain", filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.5))" }} />
+            <div>
+              <div style={{ background:myTeam?.color||"#1D9E75", borderRadius:8, padding:"2px 10px", fontSize:12, fontWeight:800, color:"#fff", display:"inline-block" }}>
+                {round+1}/15
+              </div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", fontWeight:600, marginTop:2 }}>{q.mes}</div>
             </div>
-            <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)", fontWeight:600 }}>{q.mes}</span>
           </div>
           {/* Timer circle */}
-          <div style={{ background:timerColor, borderRadius:50, width:48, height:48, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 24px ${timerColor}88`, animation:timer<=10?"shake 0.4s infinite":"none", transition:"background 0.4s", flexShrink:0 }}>
-            <span style={{ fontSize:20, fontWeight:900, color:"#fff", fontVariantNumeric:"tabular-nums" }}>{timer}</span>
+          <div style={{ background:timerColor, borderRadius:50, width:54, height:54, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 24px ${timerColor}88`, animation:timer<=10?"shake 0.4s infinite":"none", transition:"background 0.4s", flexShrink:0 }}>
+            <span style={{ fontSize:22, fontWeight:900, color:"#fff", fontVariantNumeric:"tabular-nums" }}>{timer}</span>
           </div>
         </div>
 
@@ -365,10 +412,10 @@ export default function Home() {
         </div>
 
         {/* Captain badge */}
-        <div style={{ margin:"0 1rem 0.75rem", padding:"10px 14px", borderRadius:12, background:isCaptain?"rgba(255,210,0,0.12)":"rgba(255,255,255,0.05)", border:`1.5px solid ${isCaptain?"rgba(255,210,0,0.45)":"rgba(255,255,255,0.1)"}`, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+        <div style={{ margin:"0 1rem 0.75rem", padding:"12px 16px", borderRadius:14, background:isCaptain?"rgba(255,210,0,0.15)":"rgba(255,255,255,0.05)", border:`2px solid ${isCaptain?"rgba(255,210,0,0.5)":"rgba(255,255,255,0.1)"}`, display:"flex", alignItems:"center", justifyContent:"center", gap:12 }}>
           {isCaptain
-            ? <><Image src="/cap.png" alt="cap" width={30} height={30} style={{ objectFit:"contain" }} /><span style={{ fontWeight:900, color:"#FFD700", fontSize:14, letterSpacing:0.5 }}>⚡ ¡RESPONDES TÚ ESTA RONDA!</span></>
-            : <><Image src={teamImg[myTeam?.id||1]} alt="" width={24} height={24} style={{ objectFit:"contain" }} /><span style={{ fontSize:13, color:"rgba(255,255,255,0.55)" }}>Responde: <strong style={{ color:myTeam?.color, fontSize:14 }}>{captain}</strong></span></>
+            ? <><Image src="/cap.png" alt="cap" width={44} height={44} style={{ objectFit:"contain", filter:"drop-shadow(0 2px 8px rgba(255,210,0,0.5))" }} /><span style={{ fontWeight:900, color:"#FFD700", fontSize:15, letterSpacing:0.5 }}>⚡ ¡RESPONDES TÚ ESTA RONDA!</span></>
+            : <><Image src={teamImg[myTeam?.id||1]} alt="" width={36} height={36} style={{ objectFit:"contain" }} /><span style={{ fontSize:14, color:"rgba(255,255,255,0.6)" }}>Responde: <strong style={{ color:myTeam?.color, fontSize:15 }}>{captain}</strong></span></>
           }
         </div>
 
