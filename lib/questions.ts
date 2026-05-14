@@ -24,7 +24,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Pagamos todo adelantado — el descuento vale la pena",
-        efecto: +10,
+        efecto: +5,
         flujo: "−$50,000 hoy, ahorro de $12,500 frente al precio normal de $62,500",
         feedback: "Buen ahorro ($12,500), pero quedas con solo $30,000 de reserva en tu primer mes. Si algo falla, no tienes colchón. El descuento vale si tu flujo está asegurado."
       },
@@ -36,13 +36,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "No compramos nada todavía — esperamos ingresos primero",
-        efecto: -10,
+        efecto: -18,
         flujo: "$0 egreso, pero operación frenada",
         feedback: "Sin insumos no puedes operar ni generar ingresos. Esperar sin actuar puede costarte más que cualquier gasto inicial."
       },
       {
         texto: "Buscamos otro proveedor más barato",
-        efecto: +5,
+        efecto: +2,
         flujo: "Sin egreso inmediato, tiempo perdido buscando",
         feedback: "Puede funcionar, pero buscando pierdes tiempo y el mercado no espera. A veces la velocidad vale más que el precio perfecto."
       }
@@ -58,13 +58,13 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "$40,000 — para ganar el cliente rápido",
-        efecto: -20,
+        efecto: -25,
         flujo: "Ingresos < costos. Pérdida de $5,000 en este proyecto",
         feedback: "Cobrar menos de lo que te cuesta producir es un error fatal. Cada proyecto que cotizas así tu empresa pierde dinero aunque trabaje duro. El cliente barato sale caro."
       },
       {
         texto: "$50,000 — cubre costos con margen mínimo",
-        efecto: +5,
+        efecto: +3,
         flujo: "Utilidad de $5,000 en el proyecto — muy ajustado",
         feedback: "Cubres costos, pero sin margen para imprevistos, errores o reinversión. Es supervivencia, no negocio. Un margen del 11% no sostiene ninguna empresa a largo plazo."
       },
@@ -76,7 +76,7 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "$90,000 — precio premium sin justificación",
-        efecto: -5,
+        efecto: -10,
         flujo: "Alta utilidad potencial, pero el cliente busca otra opción",
         feedback: "Un precio alto sin propuesta de valor clara espanta clientes. El precio premium funciona solo si puedes justificarlo con resultados, experiencia o diferenciación real."
       }
@@ -92,7 +92,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Sí, sin condiciones — es un cliente grande",
-        efecto: -15,
+        efecto: -22,
         flujo: "Ingreso en día 60, gastos a pagar YA",
         feedback: "Esto se llama quiebra técnica: tienes utilidades en papel pero sin efectivo para pagar. Muchas empresas quiebran con clientes, no sin ellos."
       },
@@ -104,13 +104,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Solo si pagan a 30 días máximo",
-        efecto: +15,
+        efecto: +8,
         flujo: "$120,000 en día 30 — manejable",
         feedback: "Buena decisión. 30 días es razonable y te permite planificar. Perder un cliente por condiciones de pago a veces es la decisión correcta."
       },
       {
         texto: "No acepto — no puedo financiar a nadie",
-        efecto: +5,
+        efecto: +2,
         flujo: "Sin ingreso, sin riesgo de quiebra técnica",
         feedback: "Conservador pero correcto si no tienes reservas. El problema es que sin ingresos tampoco creces. Busca el punto medio: negocia antes de rechazar."
       }
@@ -132,19 +132,19 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Le pido prestado a un familiar sin interés",
-        efecto: +15,
+        efecto: +8,
         flujo: "Sin costo financiero, pero compromete relaciones",
         feedback: "Funciona en emergencias, pero mezclar finanzas personales y empresariales es riesgoso. Úsalo solo como último recurso y documenta todo."
       },
       {
         texto: "Les pido a los empleados esperar una semana",
-        efecto: -15,
+        efecto: -22,
         flujo: "Sin egreso hoy, pero daño al equipo y reputación",
         feedback: "Retrasar nómina destruye la confianza del equipo. Un empleado que no recibe su pago a tiempo busca otro trabajo. El costo es mayor que cualquier interés."
       },
       {
         texto: "Vendo equipo de la empresa para cubrir el pago",
-        efecto: -10,
+        efecto: -15,
         flujo: "Nómina cubierta, pero pierdes capacidad operativa",
         feedback: "Vender activos para pagar operaciones es una señal de alarma grave. Es resolver lo urgente destruyendo lo importante."
       }
@@ -160,7 +160,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Compramos de contado — usamos la caja",
-        efecto: -5,
+        efecto: -10,
         flujo: "−$45,000, quedan $15,000 de reserva",
         feedback: "Tienes el equipo pero quedas muy expuesto. Con solo $15,000 de reserva, cualquier imprevisto puede paralizarte."
       },
@@ -172,13 +172,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Crédito bancario a 12 meses — cuota $4,100/mes",
-        efecto: +15,
+        efecto: +8,
         flujo: "Caja intacta, equipo tuyo al final, intereses incluidos",
         feedback: "Buena opción. Pagas más en total, pero el equipo queda como activo propio. Útil si el equipo tiene valor de reventa."
       },
       {
         texto: "No compramos — esperamos ahorrar más",
-        efecto: -10,
+        efecto: -15,
         flujo: "Caja intacta, pero perdemos clientes por capacidad limitada",
         feedback: "Esperar suena prudente, pero si ya tienes demanda, no atenderla tiene un costo de oportunidad real. A veces el riesgo de no invertir es mayor que el de invertir."
       }
@@ -194,19 +194,19 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Usamos la caja completa y esperamos que mejore",
-        efecto: -20,
+        efecto: -25,
         flujo: "Caja cae a $15,000 — zona de peligro",
         feedback: "Si el mes siguiente tampoco mejora, quiebras. Usar toda la caja sin plan es el error más común en empresas con temporadas bajas."
       },
       {
         texto: "Activamos campaña de descuentos para generar ingresos",
-        efecto: +10,
+        efecto: +5,
         flujo: "Ingresos adicionales estimados $15,000 — déficit baja a $10,000",
         feedback: "Buena iniciativa. Generar ingresos en mes lento es mejor que solo recortar. Los descuentos estratégicos pueden activar clientes dormidos."
       },
       {
         texto: "Reducimos costos: pausamos suscripciones y freelancers",
-        efecto: +15,
+        efecto: +10,
         flujo: "Ahorro de $15,000 — déficit baja a $10,000",
         feedback: "Correcto. Los costos variables son los primeros en recortar en meses difíciles. Antes de tocar la caja, reduce egresos."
       },
@@ -228,7 +228,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Sí, pagamos los $80,000 de contado",
-        efecto: +10,
+        efecto: +3,
         flujo: "Caja cae a $10,000 — muy riesgoso",
         feedback: "La oportunidad es real pero quedas sin reserva. Si los clientes no se quedan o hay algún imprevisto, estás en quiebra técnica."
       },
@@ -240,13 +240,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "No compramos — demasiado riesgo",
-        efecto: +5,
+        efecto: +2,
         flujo: "Caja intacta, pero perdemos oportunidad de crecimiento",
         feedback: "Conservador, pero a veces el mayor riesgo es no crecer. Una cartera de clientes con ingresos comprobables es un activo con retorno calculable."
       },
       {
         texto: "Buscamos socio que ponga el 50% del capital",
-        efecto: +15,
+        efecto: +8,
         flujo: "Inversión compartida, clientes compartidos también",
         feedback: "Funciona, pero compartes utilidades futuras. Vale la pena evaluar si el costo del socio es menor que el costo del crédito."
       }
@@ -262,19 +262,19 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Pagamos los $32,000 y seguimos operando con $13,000",
-        efecto: -10,
+        efecto: -12,
         flujo: "Caja cae a $13,000 — operación en riesgo",
         feedback: "Cumplir es correcto, pero quedarte con tan poca reserva es peligroso. La lección real es que los impuestos deben provisionarse cada mes."
       },
       {
         texto: "Pedimos prórroga al SAT y pagamos en parcialidades",
-        efecto: +15,
+        efecto: +10,
         flujo: "~$5,500/mes × 6 meses — caja intacta operativamente",
         feedback: "¡Buena decisión! El SAT permite convenios de pago. Usar este mecanismo es legal, inteligente y preserva tu flujo."
       },
       {
         texto: "No pagamos — esperamos que no nos auditen",
-        efecto: -30,
+        efecto: -35,
         flujo: "Sin egreso hoy, multas y recargos futuros garantizados",
         feedback: "El peor error posible. Las multas del SAT pueden triplicar la deuda original. La evasión fiscal destruye empresas — siempre cumple, negocia si es necesario."
       },
@@ -296,13 +296,13 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Usamos toda la caja + pedimos $50,000 prestado",
-        efecto: -5,
+        efecto: -12,
         flujo: "Expansión hecha, pero sin reserva y con deuda",
         feedback: "Expansión agresiva con cero reserva es un riesgo alto. Si la segunda ubicación tarda en generar, la operación actual puede sufrir."
       },
       {
         texto: "Buscamos inversionista que aporte $150,000 a cambio de 30% de la empresa",
-        efecto: +15,
+        efecto: +8,
         flujo: "Sin deuda, pero cedes participación permanente",
         feedback: "Válido. Un inversionista trae capital y a veces experiencia. El costo es la dilución. Evalúa si el 70% de algo grande vale más que el 100% de algo pequeño."
       },
@@ -314,7 +314,7 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Esperamos 4 meses más para ahorrar el capital",
-        efecto: +5,
+        efecto: +2,
         flujo: "Sin deuda, pero 4 meses de oportunidad perdida",
         feedback: "Prudente, pero si hay demanda ahora, esperar tiene un costo de oportunidad real. A veces el crédito productivo es más barato que esperar."
       }
@@ -330,13 +330,13 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Les seguimos dando servicio — no queremos perderlos",
-        efecto: -20,
+        efecto: -25,
         flujo: "Sigues generando costos sin recibir ingresos",
         feedback: "Dar servicio sin cobrar es financiar al cliente con tu propio dinero. Cada día que pasa sin cobrar, tu flujo empeora y el cliente pierde urgencia de pagar."
       },
       {
         texto: "Suspendemos el servicio hasta que paguen",
-        efecto: +10,
+        efecto: +5,
         flujo: "Sin nuevos costos, presión sobre el cliente para pagar",
         feedback: "Correcto. Suspender el servicio es una herramienta legítima de cobranza. La mayoría paga cuando ve que hay consecuencias reales."
       },
@@ -348,7 +348,7 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Cedemos la deuda a una empresa de cobranza por el 60%",
-        efecto: +5,
+        efecto: +2,
         flujo: "Recibes $45,000 inmediatos, pierdes $30,000",
         feedback: "Funciona para recuperar flujo rápido, pero pierdes el 40% de lo que te deben. Úsalo solo si la deuda lleva más de 90 días o el cliente está en quiebra."
       }
@@ -364,13 +364,13 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Damos bono de $5,000 a cada uno de los 4 empleados",
-        efecto: -15,
+        efecto: -20,
         flujo: "−$20,000 adicionales. Utilidad cae a $5,000 — sin colchón para ningún imprevisto",
         feedback: "El reconocimiento es importante, pero consumir casi toda la utilidad en bonos deja la empresa sin margen ante cualquier imprevisto. Si ese mes llega una factura inesperada, no podrás cubrirla."
       },
       {
         texto: "Prometemos bono el mes siguiente si el flujo lo permite",
-        efecto: +10,
+        efecto: +4,
         flujo: "Sin egreso hoy, compromiso futuro condicionado",
         feedback: "Razonable, pero las promesas no cumplidas desmotivan más que no prometer. Solo comprométete si realmente puedes cumplir el siguiente mes."
       },
@@ -382,7 +382,7 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "No damos nada — necesitamos conservar el flujo",
-        efecto: -5,
+        efecto: -10,
         flujo: "Flujo intacto, pero desmotivación del equipo",
         feedback: "Ignorar el desempeño tiene costos ocultos: rotación, baja productividad, pérdida de talento. Siempre hay formas creativas de reconocer sin gastar."
       }
@@ -398,7 +398,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Bajamos precios agresivamente para retener clientes",
-        efecto: -15,
+        efecto: -20,
         flujo: "Más clientes pero menos margen — puede empeorar el déficit",
         feedback: "Bajar precios en crisis comprime el margen cuando más lo necesitas. Si ya tienes déficit, trabajar más por menos no resuelve el problema."
       },
@@ -410,13 +410,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Recortamos costos fijos: renunciamos a la oficina y trabajamos remoto",
-        efecto: +15,
+        efecto: +8,
         flujo: "Ahorro de $10,000-$15,000 en renta mensual",
         feedback: "Buena decisión táctica. Reducir costos fijos es la primera palanca en crisis. El trabajo remoto puede ser permanentemente más eficiente."
       },
       {
         texto: "Pedimos crédito para sobrevivir los meses difíciles",
-        efecto: -5,
+        efecto: -10,
         flujo: "Flujo temporal, pero aumenta carga financiera futura",
         feedback: "El crédito en crisis puede ser un salvavidas o un ancla. Solo funciona si tienes un plan claro de recuperación. Sin plan, solo pospones el problema."
       }
@@ -432,7 +432,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Le pagamos los $120,000 de la caja de la empresa",
-        efecto: -15,
+        efecto: -20,
         flujo: "Caja se vacía, operación en riesgo inmediato",
         feedback: "Usar el capital operativo para comprar participaciones pone en riesgo la empresa que estás comprando. Es como vaciar el tanque de gasolina para pagar el auto."
       },
@@ -444,13 +444,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "Buscamos un nuevo socio que compre esa participación",
-        efecto: +15,
+        efecto: +8,
         flujo: "Sin egreso de caja, nuevo socio entra con capital fresco",
         feedback: "Buena opción si encuentras al socio correcto rápido. El riesgo es el tiempo que tarda y que el nuevo socio no aporte el mismo valor."
       },
       {
         texto: "Le ofrecemos $80,000 argumentando que la valuación es alta",
-        efecto: +5,
+        efecto: +2,
         flujo: "Ahorro de $40,000 si acepta, conflicto si no acepta",
         feedback: "Negociar el precio es válido si tienes argumentos sólidos. Pero subestimar la participación de un socio sin base puede generar conflictos legales costosos."
       }
@@ -466,7 +466,7 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Sí, tomamos todo — es el momento de crecer fuerte",
-        efecto: -10,
+        efecto: -18,
         flujo: "Cuota mensual ~$48,000 — casi consume toda la utilidad",
         feedback: "Con una cuota de $48,000 y utilidad de $45,000, estás en déficit desde el día 1. El crédito grande solo funciona si genera ingresos adicionales que lo paguen."
       },
@@ -478,13 +478,13 @@ export const QUESTIONS: Question[] = [
       },
       {
         texto: "No tomamos nada — preferimos crecer con utilidades propias",
-        efecto: +10,
+        efecto: +5,
         flujo: "Sin deuda, crecimiento más lento pero sin riesgo",
         feedback: "Conservador pero válido. El autofinanciamiento es sostenible. El costo es la velocidad: tu competencia podría crecer más rápido con apalancamiento."
       },
       {
         texto: "Tomamos $500,000 pero solo usamos $200,000 como reserva",
-        efecto: -15,
+        efecto: -20,
         flujo: "Pagas intereses sobre $500K usando solo $200K — costo sin beneficio",
         feedback: "Pagar intereses sobre dinero que no estás usando es desperdiciar recursos. Si solo necesitas $200K, pide $200K."
       }
@@ -500,19 +500,19 @@ export const QUESTIONS: Question[] = [
     opciones: [
       {
         texto: "Sí, vendemos — $1,800,000 en efectivo ya",
-        efecto: +10,
+        efecto: -8,
         flujo: "$1.8M inmediatos, empresa deja de ser tuya",
         feedback: "La oferta es de $1.8M cuando la empresa vale $2M y genera $540K/año. Estás vendiendo a menos del valor y renunciando a 3+ años de utilidades. Solo tiene sentido si necesitas liquidez urgente."
       },
       {
         texto: "No vendemos — seguimos creciendo",
-        efecto: +20,
+        efecto: +12,
         flujo: "$540,000/año proyectados — recuperas el valor en 4 años",
         feedback: "Con utilidades de $540K/año, en menos de 4 años habrás generado más que la oferta de compra. Si crees en el negocio, retener es la decisión correcta."
       },
       {
         texto: "Negociamos — aceptamos solo si pagan $2,500,000",
-        efecto: +15,
+        efecto: +18,
         flujo: "Prima del 25% sobre valuación si aceptan",
         feedback: "Negociar hacia arriba es correcto. Un comprador que quiere tu empresa sabe que vale más que la oferta inicial. El 'no' bien argumentado suele subir el precio."
       },

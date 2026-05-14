@@ -71,15 +71,15 @@ export default function Home() {
     }
   }, [step, introStep])
 
+  // Canal de datos (se recrea cuando session cambia de estado, pero sin presence)
   useEffect(() => {
     if (!session) return
-    const ch = supabase.channel(`session:${session.id}`, { config: { presence: { key: session.id } } })
+    const ch = supabase.channel(`session:${session.id}`)
       .on("postgres_changes", { event:"*", schema:"public", table:"sessions", filter:`id=eq.${session.id}` },
         (payload) => {
           const s = payload.new as Session
           const prev = sessionRef.current
           sessionRef.current = s
-          // Handle state transitions (safe — outside setSession updater)
           if (prev?.state !== s.state) {
             if (s.state === "playing") {
               startBgm()
@@ -113,23 +113,29 @@ export default function Home() {
             setAnswers(map)
           }
         })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [session?.id])  // solo se recrea si cambia la sesión, no el estado
+
+  // Canal de presencia separado y estable — solo se crea una vez por jugador
+  useEffect(() => {
+    if (!session?.id || !player?.id) return
+    const ch = supabase.channel(`presence:${session.id}`, { config: { presence: { key: player.id } } })
       .on("presence", { event: "leave" }, ({ leftPresences }) => {
         leftPresences.forEach((p: any) => {
-          if (p.player_id) {
+          if (p.player_id && p.player_id !== player.id) {
             supabase.from("players").delete().eq("id", p.player_id).then(() => {})
           }
         })
       })
-      .subscribe()
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await ch.track({ player_id: player.id })
+        }
+      })
     channelRef.current = ch
     return () => { supabase.removeChannel(ch); channelRef.current = null }
-  }, [session])
-
-  // Registrar presencia cuando el jugador se une
-  useEffect(() => {
-    if (!player || !channelRef.current) return
-    channelRef.current.track({ player_id: player.id })
-  }, [player])
+  }, [session?.id, player?.id])
 
   useEffect(() => {
     if (session?.state !== "feedback" || !player) return
@@ -466,19 +472,19 @@ export default function Home() {
     const myTeam = TEAMS.find(t=>t.id===player?.team)
     const myTeamPlayers = players.filter(p=>p.team===player?.team)
 
-    // Calificación basada en el puntaje del simulador (igual que el host)
-    // Empieza en 50, sube/baja según efecto de cada decisión del capitán
+    // Puntuación sin cap superior — normalizada al final contra el máximo posible
+    const MAX_SIM = QUESTIONS.reduce((acc, q) => acc + Math.max(...q.opciones.map(o => o.efecto)), 50)
     let simScore = 50
     for (let r = 0; r < QUESTIONS.length; r++) {
       const captainName = getCaptain(myTeamPlayers.map(p=>p.name), r)
       const captainPlayer = myTeamPlayers.find(p=>p.name===captainName)
-      if (!captainPlayer) { simScore = Math.max(0, simScore - 5); continue } // penalización por no contestar
+      if (!captainPlayer) { simScore = Math.max(0, simScore - 5); continue }
       const ans = answers[`${captainPlayer.id}:${r}`]
       if (ans === undefined) { simScore = Math.max(0, simScore - 5); continue }
-      simScore = Math.max(0, Math.min(100, simScore + QUESTIONS[r].opciones[ans].efecto))
+      simScore = Math.max(0, simScore + QUESTIONS[r].opciones[ans].efecto)
     }
-    const calificacion = parseFloat((simScore / 10).toFixed(1))
-    const pct = simScore
+    const calificacion = parseFloat(Math.min(10, (simScore / MAX_SIM) * 10).toFixed(1))
+    const pct = Math.round((simScore / MAX_SIM) * 100)
     const calColor = calificacion >= 8 ? "#4DFFA8" : calificacion >= 6 ? "#FFD700" : "#FF6B6B"
     const calLabel = calificacion >= 9 ? "¡Excelente!" : calificacion >= 8 ? "¡Muy bien!" : calificacion >= 6 ? "Bien" : calificacion >= 5 ? "Suficiente" : "A mejorar"
 

@@ -22,6 +22,7 @@ export default function HostPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [answers, setAnswers] = useState<any[]>([])
+  const MAX_SIM = QUESTIONS.reduce((acc, q) => acc + Math.max(...q.opciones.map(o => o.efecto)), 50)
   const [scores, setScores] = useState<Record<number, number>>({ 1:50, 2:50, 3:50, 4:50 })
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState("")
@@ -91,7 +92,7 @@ export default function HostPage() {
       const teamPlayers = players.filter(p=>p.team===t.id)
       const ans = roundAnswers.find(a => teamPlayers.some(p=>p.id===a.player_id))
       if (ans !== undefined) {
-        newScores[t.id] = Math.max(0, Math.min(100, newScores[t.id] + q.opciones[ans.option_index].efecto))
+        newScores[t.id] = Math.max(0, newScores[t.id] + q.opciones[ans.option_index].efecto)
       } else {
         newScores[t.id] = Math.max(0, newScores[t.id] - 5)
       }
@@ -185,10 +186,10 @@ export default function HostPage() {
                     </div>
                   </div>
                   <div style={{ background:"#f0f0ee", borderRadius:4, height:7 }}>
-                    <div style={{ background:t.color, height:7, borderRadius:4, width:`${s}%`, transition:"width 0.6s ease" }}/>
+                    <div style={{ background:t.color, height:7, borderRadius:4, width:`${Math.min(100, Math.round((s/MAX_SIM)*100))}%`, transition:"width 0.6s ease" }}/>
                   </div>
                 </div>
-                <span style={{ fontSize:13, fontWeight:700, color:t.color, minWidth:28, textAlign:"right" }}>{s}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:t.color, minWidth:28, textAlign:"right" }}>{Math.round((s/MAX_SIM)*100)}%</span>
               </div>
             )
           })}
@@ -260,7 +261,7 @@ export default function HostPage() {
             <div style={{ display:"grid", gap:8, marginBottom:14 }}>
               {sortedTeams.map((t, i) => {
                 const s = scores[t.id]
-                const calificacion = parseFloat(((s / 100) * 10).toFixed(1))
+                const calificacion = parseFloat(Math.min(10, (s / MAX_SIM) * 10).toFixed(1))
                 const medal = ["🥇","🥈","🥉","4️⃣"][i]
                 return (
                   <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background: i===0?`${t.color}18`:"#f9f9f9", borderRadius:10, padding:"0.6rem 1rem", border:`1.5px solid ${i===0?t.color+"44":"#eee"}` }}>
