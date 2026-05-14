@@ -73,8 +73,23 @@ export default function HostPage() {
           if (data) setAnswers(data)
         })
       .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [session])
+
+    // Canal de presencia — el host es quien elimina jugadores desconectados
+    const presence = supabase.channel(`presence:${session.id}`, { config: { presence: { key: session.id } } })
+      .on("presence", { event: "leave" }, ({ leftPresences }) => {
+        leftPresences.forEach(async (p: any) => {
+          if (p.player_id) {
+            await supabase.from("players").delete().eq("id", p.player_id)
+          }
+        })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(ch)
+      supabase.removeChannel(presence)
+    }
+  }, [session?.id])
 
   async function startGame() {
     await supabase.from("sessions").update({ state:"playing", current_round:0 }).eq("id", session!.id)

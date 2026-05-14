@@ -117,17 +117,10 @@ export default function Home() {
     return () => { supabase.removeChannel(ch) }
   }, [session?.id])  // solo se recrea si cambia la sesión, no el estado
 
-  // Canal de presencia separado y estable — solo se crea una vez por jugador
+  // Canal de presencia — solo registra al jugador, el host maneja las eliminaciones
   useEffect(() => {
     if (!session?.id || !player?.id) return
     const ch = supabase.channel(`presence:${session.id}`, { config: { presence: { key: player.id } } })
-      .on("presence", { event: "leave" }, ({ leftPresences }) => {
-        leftPresences.forEach((p: any) => {
-          if (p.player_id && p.player_id !== player.id) {
-            supabase.from("players").delete().eq("id", p.player_id).then(() => {})
-          }
-        })
-      })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await ch.track({ player_id: player.id })
